@@ -76,45 +76,74 @@ const tocItems = [
 ];
 
 export default function ReportPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen">
+      {/* Overlay backdrop (mobile) */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar TOC */}
       <aside
-        className={`${
-          sidebarOpen ? "w-64" : "w-0"
-        } flex-shrink-0 transition-all duration-200 overflow-hidden`}
+        className={`
+          fixed top-0 left-0 h-screen z-50 bg-white border-r border-gray-200
+          pt-16 overflow-y-auto transition-transform duration-200
+          w-64
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0 lg:static lg:z-auto lg:flex-shrink-0
+        `}
       >
-        <div className="w-64 fixed top-0 left-0 h-screen bg-white border-r border-gray-200 pt-16 overflow-y-auto z-40">
-          <div className="px-4 py-6">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+        <div className="px-4 py-6">
+          {/* Close button (mobile) */}
+          <div className="flex items-center justify-between mb-4 lg:hidden">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
               目次
             </h3>
-            <nav className="space-y-1">
-              {tocItems.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  className="block px-3 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1 text-gray-400 hover:text-gray-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <div className="px-4 pb-6 mt-4 border-t border-gray-100 pt-4">
-            <p className="text-xs text-gray-400">2026年2月作成</p>
-            <p className="text-xs text-gray-400">OCRCheck POC</p>
-          </div>
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 hidden lg:block">
+            目次
+          </h3>
+          <nav className="space-y-1">
+            {tocItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                onClick={() => setSidebarOpen(false)}
+                className="block px-3 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+        <div className="px-4 pb-6 mt-4 border-t border-gray-100 pt-4">
+          <p className="text-xs text-gray-400">2026年2月作成</p>
+          <p className="text-xs text-gray-400">OCRCheck POC</p>
         </div>
       </aside>
 
       {/* Toggle sidebar button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed bottom-4 left-4 z-50 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
-        title={sidebarOpen ? "目次を閉じる" : "目次を開く"}
+        className={`
+          fixed bottom-4 left-4 z-50 bg-blue-600 text-white p-3 rounded-full
+          shadow-lg hover:bg-blue-700 transition-colors
+          lg:hidden
+        `}
+        title="目次"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -123,17 +152,13 @@ export default function ReportPage() {
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          {sidebarOpen ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-          ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-          )}
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
-        <div className="max-w-4xl mx-auto px-8 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-8 mb-10 text-white">
             <h1 className="text-3xl font-bold mb-2">
