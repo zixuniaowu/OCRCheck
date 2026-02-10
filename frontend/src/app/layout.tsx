@@ -32,6 +32,9 @@ export default function RootLayout({
               <a href="/documents" className="hover:text-blue-600">
                 書類一覧
               </a>
+              <a href="/report" className="hover:text-blue-600">
+                調査報告書
+              </a>
             </nav>
           </div>
         </header>
