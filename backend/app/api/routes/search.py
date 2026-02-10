@@ -1,6 +1,12 @@
+import logging
+import traceback
+
 from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -19,28 +25,35 @@ async def search(
     Search documents with full-text query and filters.
     Returns results with highlights and facets.
     """
-    if settings.search_backend == "postgresql":
-        from app.services.search import pg_search_documents
+    try:
+        if settings.search_backend == "postgresql":
+            from app.services.search import pg_search_documents
 
-        result = pg_search_documents(
-            query=q,
-            category=category,
-            tags=tags,
-            date_from=date_from,
-            date_to=date_to,
-            skip=skip,
-            limit=limit,
-        )
-    else:
-        from app.services.search import search_documents
+            result = pg_search_documents(
+                query=q,
+                category=category,
+                tags=tags,
+                date_from=date_from,
+                date_to=date_to,
+                skip=skip,
+                limit=limit,
+            )
+        else:
+            from app.services.search import search_documents
 
-        result = search_documents(
-            query=q,
-            category=category,
-            tags=tags,
-            date_from=date_from,
-            date_to=date_to,
-            skip=skip,
-            limit=limit,
+            result = search_documents(
+                query=q,
+                category=category,
+                tags=tags,
+                date_from=date_from,
+                date_to=date_to,
+                skip=skip,
+                limit=limit,
+            )
+        return result
+    except Exception as e:
+        logger.error(f"Search error: {e}\n{traceback.format_exc()}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": str(e), "traceback": traceback.format_exc()},
         )
-    return result
