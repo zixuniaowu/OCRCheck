@@ -66,12 +66,13 @@ function CodeBlock({ children }: { children: string }) {
 const tocItems = [
   { id: "overview", label: "1. プロジェクト概要" },
   { id: "tech-survey", label: "2. 技術調査: OCR精度比較" },
-  { id: "architecture", label: "3. システムアーキテクチャ" },
-  { id: "implementation", label: "4. 各要件の実現方法" },
-  { id: "poc-plan", label: "5. POC実施計画" },
-  { id: "cost", label: "6. コスト概算" },
-  { id: "risk", label: "7. リスクと対策" },
-  { id: "conclusion", label: "8. 結論・推奨" },
+  { id: "current-poc", label: "3. 現在のPOC実装状況" },
+  { id: "architecture", label: "4. システムアーキテクチャ" },
+  { id: "implementation", label: "5. 各要件の実現方法" },
+  { id: "poc-plan", label: "6. POC実施計画" },
+  { id: "cost", label: "7. コスト概算" },
+  { id: "risk", label: "8. リスクと対策" },
+  { id: "conclusion", label: "9. 結論・推奨" },
 ];
 
 export default function ReportPage() {
@@ -226,10 +227,80 @@ export default function ReportPage() {
             ]}
           />
 
-          {/* 3. Architecture */}
-          <SectionTitle id="architecture">3. システムアーキテクチャ</SectionTitle>
+          {/* 3. Current POC */}
+          <SectionTitle id="current-poc">3. 現在のPOC実装状況</SectionTitle>
 
-          <SubTitle>3.1 全体構成</SubTitle>
+          <div className="bg-amber-50 rounded-lg p-6 border border-amber-200 my-6">
+            <h3 className="text-lg font-bold text-amber-800 mb-3">
+              現在稼働中のデモ環境
+            </h3>
+            <p className="text-amber-700 mb-2">
+              本報告書に記載のシステムは、POCデモとして実際に稼働しています。
+              以下のリンクからアップロード・OCR・検索を体験できます。
+            </p>
+            <div className="flex gap-4 mt-3">
+              <a
+                href="/"
+                className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                デモを試す →
+              </a>
+              <a
+                href="/upload"
+                className="inline-block px-4 py-2 bg-white border border-blue-300 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
+              >
+                書類をアップロード
+              </a>
+            </div>
+          </div>
+
+          <SubTitle>3.1 現在のOCRエンジン構成</SubTitle>
+          <Table
+            headers={["項目", "現在の実装", "備考"]}
+            rows={[
+              ["OCRエンジン", "<strong>RapidOCR (ONNX Runtime)</strong>", "PaddleOCRのONNX変換版、CPUのみで動作"],
+              ["認識モデル", "<strong>PP-OCRv3 日本語</strong> (japan_PP-OCRv3_rec)", "PaddleOCRの日本語特化認識モデル"],
+              ["検出モデル", "PP-OCRv3 デフォルト (det)", "RapidOCR標準の検出モデル"],
+              ["分類モデル", "PP-OCRv3 デフォルト (cls)", "テキスト方向分類"],
+              ["AI文書分析", "Claude Vision API (オプション)", "APIキー設定時のみ有効、分類・要約・エンティティ抽出"],
+              ["実行環境", "CPU Basic (HF Spaces)", "GPU未使用、ONNX Runtimeによる推論"],
+            ]}
+          />
+
+          <SubTitle>3.2 現在の認識精度</SubTitle>
+          <Table
+            headers={["文書タイプ", "文字認識精度", "処理時間", "備考"]}
+            rows={[
+              ["日本語ビジネス文書 (活字)", "<strong>~95%</strong> (confidence)", "~5秒/ページ (CPU)", "契約書・請求書等で検証"],
+              ["混在文書 (テキスト+表)", "~90-93%", "~8秒/ページ (CPU)", "表内テキストの精度がやや低下"],
+              ["低品質スキャン", "~80-85%", "~10秒/ページ (CPU)", "傾き・ノイズの影響"],
+              ["手書き文字", "未対応", "—", "PP-OCRv3では限定的"],
+            ]}
+          />
+
+          <SubTitle>3.3 精度向上の改善計画</SubTitle>
+          <Table
+            headers={["改善策", "期待精度向上", "難易度", "説明"]}
+            rows={[
+              ["PP-OCRv3 → <strong>PP-OCRv5</strong>へ更新", "+2-3%", "中", "最新モデルで日本語認識精度96.58%、縦書き対応強化"],
+              ["<strong>Vision LLM後処理</strong>追加", "+3-5%", "低", "Claude/GeminiでOCR結果を文脈補正。誤字修正・フォーマット整形"],
+              ["<strong>GPU推論</strong>導入", "処理速度3-5倍", "低", "ONNX Runtime GPU / CUDA対応で高速化"],
+              ["<strong>MinerU2.5</strong>表抽出", "表精度+10-15%", "高", "専用テーブル抽出モデルで表認識を大幅改善"],
+              ["前処理パイプライン強化", "+2-5%", "中", "傾き補正、ノイズ除去、コントラスト調整の自動化"],
+            ]}
+          />
+
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 my-4 text-sm text-gray-600">
+            <p className="font-semibold text-gray-700 mb-1">現在のPOC → 本番への精度ロードマップ:</p>
+            <p>
+              現在 ~95% (PP-OCRv3 + CPU) → Phase 1: ~97% (PP-OCRv5) → Phase 2: ~98-99% (+ Vision LLM補正 + GPU)
+            </p>
+          </div>
+
+          {/* 4. Architecture */}
+          <SectionTitle id="architecture">4. システムアーキテクチャ</SectionTitle>
+
+          <SubTitle>4.1 全体構成</SubTitle>
           <CodeBlock>{`[ユーザー] → [Web App (Next.js)] → [API (FastAPI)] → [AWS Infrastructure]
                                          │
                     ┌────────────────────┼────────────────────┐
@@ -245,7 +316,7 @@ export default function ReportPage() {
                               [Elasticsearch]
                               (全文検索インデックス)`}</CodeBlock>
 
-          <SubTitle>3.2 コンポーネント一覧</SubTitle>
+          <SubTitle>4.2 コンポーネント一覧</SubTitle>
           <Table
             headers={["レイヤー", "コンポーネント", "技術"]}
             rows={[
@@ -266,10 +337,10 @@ export default function ReportPage() {
             ]}
           />
 
-          {/* 4. Implementation */}
-          <SectionTitle id="implementation">4. 各要件の実現方法</SectionTitle>
+          {/* 5. Implementation */}
+          <SectionTitle id="implementation">5. 各要件の実現方法</SectionTitle>
 
-          <SubTitle>4.1 ① 書類スキャン・格納</SubTitle>
+          <SubTitle>5.1 ① 書類スキャン・格納</SubTitle>
           <Table
             headers={["項目", "内容"]}
             rows={[
@@ -280,7 +351,7 @@ export default function ReportPage() {
             ]}
           />
 
-          <SubTitle>4.2 ② OCR・AIによるデータ化</SubTitle>
+          <SubTitle>5.2 ② OCR・AIによるデータ化</SubTitle>
           <Table
             headers={["項目", "内容"]}
             rows={[
@@ -294,7 +365,7 @@ export default function ReportPage() {
             ]}
           />
 
-          <SubTitle>4.3 ③ 検索・分類</SubTitle>
+          <SubTitle>5.3 ③ 検索・分類</SubTitle>
           <Table
             headers={["項目", "内容"]}
             rows={[
@@ -306,7 +377,7 @@ export default function ReportPage() {
             ]}
           />
 
-          <SubTitle>4.4 ④ 修正・コメント・共有</SubTitle>
+          <SubTitle>5.4 ④ 修正・コメント・共有</SubTitle>
           <Table
             headers={["項目", "内容"]}
             rows={[
@@ -318,10 +389,10 @@ export default function ReportPage() {
             ]}
           />
 
-          {/* 5. POC Plan */}
-          <SectionTitle id="poc-plan">5. POC実施計画</SectionTitle>
+          {/* 6. POC Plan */}
+          <SectionTitle id="poc-plan">6. POC実施計画</SectionTitle>
 
-          <SubTitle>5.1 POCスコープ</SubTitle>
+          <SubTitle>6.1 POCスコープ</SubTitle>
           <Table
             headers={["Phase", "内容", "期間目安"]}
             rows={[
@@ -337,7 +408,7 @@ export default function ReportPage() {
             <p className="font-bold text-yellow-800">POC合計期間目安: 約8週間</p>
           </div>
 
-          <SubTitle>5.2 POC技術スタック</SubTitle>
+          <SubTitle>6.2 POC技術スタック</SubTitle>
           <CodeBlock>{`フロントエンド:  Next.js 15 + TypeScript + Tailwind CSS
 バックエンド:    FastAPI (Python 3.12)
 OCRエンジン:    PaddleOCR PP-OCRv5
@@ -349,7 +420,7 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
 ストレージ:      Amazon S3
 コンテナ:       Docker + Docker Compose (ローカル開発)`}</CodeBlock>
 
-          <SubTitle>5.3 POCで検証すべき項目</SubTitle>
+          <SubTitle>6.3 POCで検証すべき項目</SubTitle>
           <Table
             headers={["#", "検証項目", "判定基準"]}
             rows={[
@@ -363,10 +434,10 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
             ]}
           />
 
-          {/* 6. Cost */}
-          <SectionTitle id="cost">6. コスト概算</SectionTitle>
+          {/* 7. Cost */}
+          <SectionTitle id="cost">7. コスト概算</SectionTitle>
 
-          <SubTitle>6.1 POCフェーズ (月額)</SubTitle>
+          <SubTitle>7.1 POCフェーズ (月額)</SubTitle>
           <Table
             headers={["項目", "サービス", "月額概算"]}
             rows={[
@@ -382,7 +453,7 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
             ]}
           />
 
-          <SubTitle>6.2 本番運用フェーズ (月額概算)</SubTitle>
+          <SubTitle>7.2 本番運用フェーズ (月額概算)</SubTitle>
           <p className="text-gray-600 mb-2">月間処理量10,000ページの場合：</p>
           <Table
             headers={["項目", "月額概算"]}
@@ -398,8 +469,8 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
             ]}
           />
 
-          {/* 7. Risk */}
-          <SectionTitle id="risk">7. リスクと対策</SectionTitle>
+          {/* 8. Risk */}
+          <SectionTitle id="risk">8. リスクと対策</SectionTitle>
 
           <Table
             headers={["#", "リスク", "影響度", "対策"]}
@@ -413,12 +484,12 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
             ]}
           />
 
-          {/* 8. Conclusion */}
-          <SectionTitle id="conclusion">8. 結論・推奨</SectionTitle>
+          {/* 9. Conclusion */}
+          <SectionTitle id="conclusion">9. 結論・推奨</SectionTitle>
 
           <div className="bg-green-50 rounded-lg p-6 border border-green-200 my-6">
             <h3 className="text-lg font-bold text-green-800 mb-3">
-              8.1 技術的実現可能性: 高い
+              9.1 技術的実現可能性: 高い
             </h3>
             <ul className="space-y-2 text-green-700">
               <li>OCR技術（特にPaddleOCR PP-OCRv5）は日本語文書に対して十分な精度を持つ</li>
@@ -427,7 +498,7 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
             </ul>
           </div>
 
-          <SubTitle>8.2 推奨アプローチ</SubTitle>
+          <SubTitle>9.2 推奨アプローチ</SubTitle>
           <ol className="list-decimal list-inside space-y-2 text-gray-600 mb-6">
             <li>
               <strong>オープンソース中心のハイブリッド構成</strong> — PaddleOCR + MinerU (OSS)
@@ -444,7 +515,7 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
             </li>
           </ol>
 
-          <SubTitle>8.3 開発可能範囲</SubTitle>
+          <SubTitle>9.3 開発可能範囲</SubTitle>
           <Table
             headers={["要件", "開発可否", "備考"]}
             rows={[
