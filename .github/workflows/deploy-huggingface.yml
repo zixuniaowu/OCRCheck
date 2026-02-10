@@ -18,21 +18,27 @@ jobs:
           cp docker/Dockerfile.spaces Dockerfile
           cp docker/README.hf.md README.md
           chmod +x docker/start_spaces.sh
+          rm -rf test_docs docs .github
 
       - name: Deploy to Hugging Face Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
         run: |
+          set -ex
           if [ -z "$HF_TOKEN" ]; then echo "::error::HF_TOKEN not set"; exit 1; fi
           if [ -z "$HF_SPACE_NAME" ]; then echo "::error::HF_SPACE_NAME not set"; exit 1; fi
           echo "Deploying to space: $HF_SPACE_NAME"
-          rm -rf test_docs docs .github
+          echo "Files to deploy:"
+          find . -maxdepth 2 -type f | head -30
           rm -rf .git
           git init -b main
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git lfs install
           git add .
+          git status
           git commit -m "Deploy from GitHub Actions"
-          git push --force "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_NAME}" main
+          echo "Pushing to HF..."
+          GIT_TRACE=1 git push --force "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_NAME}" main 2>&1 | grep -v "${HF_TOKEN}" || true
+          echo "Push exit code: $?"
+          echo "Done"

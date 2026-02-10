@@ -65,8 +65,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-14 postgresql-contrib-14 \
     # Redis
     redis-server \
-    # Python 3.12
-    software-properties-common \
+    # Python 3.12 (gnupg needed for add-apt-repository)
+    software-properties-common gnupg \
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update && apt-get install -y --no-install-recommends \
     python3.12 python3.12-venv python3.12-dev python3-pip \
