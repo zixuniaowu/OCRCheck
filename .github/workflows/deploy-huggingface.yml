@@ -27,6 +27,7 @@ jobs:
           if [ -z "$HF_TOKEN" ]; then echo "::error::HF_TOKEN not set"; exit 1; fi
           if [ -z "$HF_SPACE_NAME" ]; then echo "::error::HF_SPACE_NAME not set"; exit 1; fi
           echo "Deploying to space: $HF_SPACE_NAME"
+          rm -rf test_docs docs .github
           rm -rf .git
           git init -b main
           git config user.name "GitHub Actions"
