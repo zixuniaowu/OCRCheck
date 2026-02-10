@@ -5,6 +5,8 @@ Supports two backends:
 - PostgreSQL with pg_trgm (for HF Spaces single-container deploy)
 """
 
+from __future__ import annotations
+
 import logging
 import re
 from typing import Any
