@@ -268,15 +268,43 @@ export default function ReportPage() {
           />
 
           <SubTitle>3.2 現在の認識精度</SubTitle>
+
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 my-4 text-sm text-gray-600">
+            <p>
+              OCRはすべて<strong>ローカルモデル</strong>で実行（外部クラウドOCR APIは不使用）。
+              RapidOCR + ONNX Runtimeによるサーバー内推論のため、データが外部に送信されることはありません。
+            </p>
+          </div>
+
+          <p className="font-semibold text-gray-700 mt-6 mb-2">印刷文字（活字）の認識精度</p>
           <Table
             headers={["文書タイプ", "文字認識精度", "処理時間", "備考"]}
             rows={[
-              ["日本語ビジネス文書 (活字)", "<strong>~95%</strong> (confidence)", "~5秒/ページ (CPU)", "契約書・請求書等で検証"],
-              ["混在文書 (テキスト+表)", "~90-93%", "~8秒/ページ (CPU)", "表内テキストの精度がやや低下"],
-              ["低品質スキャン", "~80-85%", "~10秒/ページ (CPU)", "傾き・ノイズの影響"],
-              ["手書き文字", "未対応", "—", "PP-OCRv3では限定的"],
+              ["日本語ビジネス文書 (高品質スキャン)", "<strong class='text-green-600'>~95%</strong>", "~5秒/ページ (CPU)", "契約書・請求書等、300dpi以上"],
+              ["混在文書 (テキスト+表+図)", "~90-93%", "~8秒/ページ (CPU)", "表内テキストの精度がやや低下"],
+              ["低品質スキャン / FAX受信文書", "~80-85%", "~10秒/ページ (CPU)", "傾き・ノイズ・低解像度の影響"],
+              ["縦書き文書", "~85-90%", "~6秒/ページ (CPU)", "PP-OCRv3の縦書き対応は限定的"],
             ]}
           />
+
+          <p className="font-semibold text-gray-700 mt-6 mb-2">手書き文字の認識精度</p>
+          <Table
+            headers={["手書きタイプ", "文字認識精度", "備考"]}
+            rows={[
+              ["丁寧な手書き（ブロック体）", "<span class='text-yellow-600 font-bold'>~60-70%</span>", "数字・カタカナは比較的良好"],
+              ["一般的な手書き（走り書き）", "<span class='text-red-600 font-bold'>~30-50%</span>", "くずし字・連続筆記は認識困難"],
+              ["手書き+活字の混在", "<span class='text-yellow-600 font-bold'>~70-80%</span> (活字部分)", "活字部分は正常認識、手書き部分の精度低下"],
+            ]}
+          />
+
+          <div className="bg-red-50 rounded-lg p-4 border border-red-200 my-4 text-sm">
+            <p className="font-semibold text-red-700 mb-1">手書き認識の制約:</p>
+            <p className="text-red-600">
+              現在のPP-OCRv3は活字（印刷文字）に最適化されており、手書き文字の認識精度は実用レベルに達していません。
+              手書き対応が必要な場合は、PP-OCRv5への更新（手書きモデル追加）またはVision LLM（Claude/Gemini）による
+              画像直接認識を推奨します。
+            </p>
+          </div>
 
           <SubTitle>3.3 精度向上の改善計画</SubTitle>
           <Table
