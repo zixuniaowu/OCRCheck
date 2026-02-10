@@ -107,7 +107,6 @@ COPY --from=model-builder /models/japan_dict.txt /app/backend/models/japan_dict.
 # --- Frontend setup ---
 COPY --from=frontend-builder /frontend/.next/standalone /app/frontend
 COPY --from=frontend-builder /frontend/.next/static /app/frontend/.next/static
-COPY --from=frontend-builder /frontend/public /app/frontend/public
 
 # --- Nginx config ---
 COPY docker/nginx-spaces.conf /etc/nginx/sites-available/default
