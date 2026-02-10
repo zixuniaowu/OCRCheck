@@ -6,8 +6,8 @@ import {
   searchDocuments,
   type SearchResponse,
   type SearchHit,
-  type FacetBucket,
 } from "@/lib/api";
+import { formatSize } from "@/lib/format";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
@@ -40,7 +40,6 @@ export default function SearchPage() {
     }
   }, [query, category, selectedTags, dateFrom, dateTo, page]);
 
-  // Load initial results
   useEffect(() => {
     doSearch();
   }, [category, selectedTags, dateFrom, dateTo, page]);
@@ -70,18 +69,27 @@ export default function SearchPage() {
   const hasFilters = category || selectedTags.length > 0 || dateFrom || dateTo;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <h2 className="text-2xl font-bold">書類検索</h2>
 
       {/* Search bar */}
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="flex-1 relative">
+          <svg
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="キーワードで書類を検索..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-11 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:shadow-md transition"
           />
           {query && (
             <button
@@ -93,14 +101,14 @@ export default function SearchPage() {
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              ×
+              &times;
             </button>
           )}
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition font-medium"
+          className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-blue-300 transition font-medium"
         >
           検索
         </button>
@@ -118,7 +126,6 @@ export default function SearchPage() {
             </button>
           )}
 
-          {/* Category filter */}
           {result?.facets.categories && result.facets.categories.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h3 className="font-semibold mb-3 text-sm">分類</h3>
@@ -144,7 +151,6 @@ export default function SearchPage() {
             </div>
           )}
 
-          {/* Tags filter */}
           {result?.facets.tags && result.facets.tags.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h3 className="font-semibold mb-3 text-sm">タグ</h3>
@@ -167,7 +173,6 @@ export default function SearchPage() {
             </div>
           )}
 
-          {/* Date range */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="font-semibold mb-3 text-sm">書類日付</h3>
             <div className="space-y-2">
@@ -201,7 +206,6 @@ export default function SearchPage() {
 
         {/* Results */}
         <div className="lg:col-span-3 space-y-4">
-          {/* Result count */}
           {result && (
             <p className="text-sm text-gray-500">
               {result.total} 件の結果
@@ -215,9 +219,28 @@ export default function SearchPage() {
           )}
 
           {loading ? (
-            <p className="text-gray-500 py-8 text-center">検索中...</p>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="h-5 w-48 bg-gray-200 rounded" />
+                      <div className="h-4 w-full bg-gray-100 rounded" />
+                      <div className="h-4 w-2/3 bg-gray-100 rounded" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="h-3 w-12 bg-gray-200 rounded" />
+                      <div className="h-3 w-16 bg-gray-200 rounded" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : result && result.hits.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+              <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <p className="text-gray-500">検索結果がありません</p>
               {hasFilters && (
                 <button
@@ -236,7 +259,6 @@ export default function SearchPage() {
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-4">
                   <button
@@ -289,7 +311,6 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
             )}
           </div>
 
-          {/* Summary or highlighted text */}
           {highlights.summary ? (
             <p
               className="text-sm text-gray-600 mb-2 [&_mark]:bg-yellow-200 [&_mark]:px-0.5"
@@ -303,7 +324,6 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
             </p>
           ) : null}
 
-          {/* OCR text highlights */}
           {highlights.ocr_text && (
             <div className="space-y-1 mb-2">
               {highlights.ocr_text.map((h, i) => (
@@ -316,7 +336,6 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
             </div>
           )}
 
-          {/* Tags */}
           {hit.tags && hit.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
               {hit.tags.map((tag, i) => (
@@ -330,7 +349,6 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
             </div>
           )}
 
-          {/* Entities preview */}
           <div className="flex flex-wrap gap-x-4 text-xs text-gray-400">
             {hit.entities_people?.length > 0 && (
               <span>人名: {hit.entities_people.join(", ")}</span>
@@ -341,7 +359,6 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
           </div>
         </div>
 
-        {/* Meta */}
         <div className="text-right text-xs text-gray-400 shrink-0 space-y-1">
           <div>{hit.content_type.split("/")[1].toUpperCase()}</div>
           <div>{formatSize(hit.file_size)}</div>
@@ -356,10 +373,4 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
       </div>
     </div>
   );
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

@@ -18,6 +18,11 @@ import {
   type OCRPageData,
   type CommentData,
 } from "@/lib/api";
+import { formatSize, formatDateTime } from "@/lib/format";
+import StatusBadge from "../../_components/StatusBadge";
+import Breadcrumb from "../../_components/Breadcrumb";
+import ConfirmDialog from "../../_components/ConfirmDialog";
+import { useToast } from "../../_components/Toast";
 
 export default function DocumentDetailPage() {
   const params = useParams();
@@ -29,6 +34,9 @@ export default function DocumentDetailPage() {
   const [activeTab, setActiveTab] = useState<"preview" | "ocr" | "tables">("preview");
   const [loading, setLoading] = useState(true);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"reprocess" | "delete-comment" | null>(null);
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchData = () => {
     setLoading(true);
@@ -57,7 +65,6 @@ export default function DocumentDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    // Auto-refresh while processing
     if (doc?.status === "processing" || doc?.status === "uploaded") {
       const interval = setInterval(fetchData, 5000);
       return () => clearInterval(interval);
@@ -65,12 +72,55 @@ export default function DocumentDetailPage() {
   }, [doc?.status]);
 
   const handleReprocess = async () => {
-    if (!confirm("OCR処理を再実行しますか？")) return;
-    await reprocessDocument(id);
-    fetchData();
+    setConfirmAction(null);
+    try {
+      await reprocessDocument(id);
+      toast("OCR再処理をキューに投入しました", "info");
+      fetchData();
+    } catch {
+      toast("再処理の開始に失敗しました", "error");
+    }
   };
 
-  if (loading) return <p className="text-gray-500">読み込み中...</p>;
+  const handleDeleteComment = async () => {
+    if (!deleteCommentId) return;
+    setConfirmAction(null);
+    try {
+      await deleteComment(id, deleteCommentId);
+      toast("コメントを削除しました", "success");
+      refreshComments();
+    } catch {
+      toast("コメントの削除に失敗しました", "error");
+    }
+    setDeleteCommentId(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+        <div className="h-8 w-96 bg-gray-200 rounded animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="h-10 bg-gray-200 rounded animate-pulse" />
+            <div className="h-[400px] bg-gray-100 rounded-lg animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+                <div className="h-5 w-24 bg-gray-200 rounded mb-3" />
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-100 rounded" />
+                  <div className="h-4 w-2/3 bg-gray-100 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!doc) return <p className="text-red-500">書類が見つかりません</p>;
 
   const currentOcrPage = ocrPages.find((p) => p.page_number === activePage);
@@ -78,42 +128,47 @@ export default function DocumentDetailPage() {
   const isPdf = doc.content_type === "application/pdf";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "ダッシュボード", href: "/" },
+          { label: "書類一覧", href: "/documents" },
+          { label: doc.original_filename },
+        ]}
+      />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/documents" className="text-gray-400 hover:text-gray-600">
-            ← 一覧
-          </Link>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold">{doc.original_filename}</h2>
           <StatusBadge status={doc.status} />
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowShareDialog(true)}
-            className="text-sm border border-blue-300 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50"
+            className="text-sm border border-blue-300 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition"
           >
             共有
           </button>
           <button
-            onClick={handleReprocess}
-            className="text-sm border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50"
+            onClick={() => setConfirmAction("reprocess")}
+            className="text-sm border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
           >
             再処理
           </button>
         </div>
       </div>
 
-      {/* Processing indicator */}
+      {/* Processing step indicator */}
       {(doc.status === "processing" || doc.status === "uploaded") && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
-          <svg className="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <span className="text-blue-700 text-sm">
-            {doc.status === "uploaded" ? "OCR処理待ち..." : "OCR処理中...（自動更新されます）"}
-          </span>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-6 text-sm">
+            <StepIndicator label="アップロード" done />
+            <StepIndicator label="OCR処理" done={doc.status === "processing"} active={doc.status === "uploaded"} />
+            <StepIndicator label="AI分析" active={doc.status === "processing"} />
+            <StepIndicator label="完了" />
+          </div>
         </div>
       )}
 
@@ -137,7 +192,7 @@ export default function DocumentDetailPage() {
             ))}
           </div>
 
-          {/* Page navigation (if multi-page) */}
+          {/* Page navigation */}
           {(doc.page_count ?? 0) > 1 && (
             <div className="flex items-center gap-2">
               <button
@@ -180,6 +235,7 @@ export default function DocumentDetailPage() {
                     prev.map((p) => (p.id === updated.id ? updated : p))
                   );
                 }}
+                onSaveError={() => toast("保存に失敗しました", "error")}
               />
             )}
             {activeTab === "tables" && <TablesTab currentOcrPage={currentOcrPage} />}
@@ -196,16 +252,13 @@ export default function DocumentDetailPage() {
               <InfoRow label="形式" value={doc.content_type} />
               <InfoRow label="サイズ" value={formatSize(doc.file_size)} />
               <InfoRow label="ページ数" value={doc.page_count ? `${doc.page_count}` : "-"} />
-              <InfoRow
-                label="アップロード日"
-                value={new Date(doc.created_at).toLocaleString("ja-JP")}
-              />
+              <InfoRow label="アップロード日" value={formatDateTime(doc.created_at)} />
             </dl>
           </div>
 
           {/* AI Classification */}
           {doc.category && (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-purple-400 p-4">
               <h3 className="font-semibold mb-3">AI分類</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -240,7 +293,7 @@ export default function DocumentDetailPage() {
 
           {/* Summary */}
           {doc.summary && (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-blue-400 p-4">
               <h3 className="font-semibold mb-3">要約</h3>
               <p className="text-sm text-gray-700 leading-relaxed">{doc.summary}</p>
             </div>
@@ -248,12 +301,12 @@ export default function DocumentDetailPage() {
 
           {/* Key Points */}
           {doc.key_points && doc.key_points.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-green-400 p-4">
               <h3 className="font-semibold mb-3">重要ポイント</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 {doc.key_points.map((point, i) => (
                   <li key={i} className="flex gap-2">
-                    <span className="text-blue-500 shrink-0">-</span>
+                    <span className="text-green-500 shrink-0">-</span>
                     <span>{point}</span>
                   </li>
                 ))}
@@ -300,6 +353,10 @@ export default function DocumentDetailPage() {
             documentId={id}
             comments={comments}
             onRefresh={refreshComments}
+            onRequestDelete={(cid) => {
+              setDeleteCommentId(cid);
+              setConfirmAction("delete-comment");
+            }}
           />
 
           {doc.download_url && (
@@ -323,6 +380,42 @@ export default function DocumentDetailPage() {
           onUpdate={(updated) => setDoc(updated)}
         />
       )}
+
+      {/* Reprocess confirm */}
+      <ConfirmDialog
+        open={confirmAction === "reprocess"}
+        title="OCR再処理"
+        message="OCR処理を再実行しますか？既存のOCR結果は上書きされます。"
+        confirmLabel="再処理"
+        onConfirm={handleReprocess}
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      {/* Delete comment confirm */}
+      <ConfirmDialog
+        open={confirmAction === "delete-comment"}
+        title="コメントの削除"
+        message="このコメントを削除しますか？"
+        confirmLabel="削除"
+        variant="danger"
+        onConfirm={handleDeleteComment}
+        onCancel={() => { setConfirmAction(null); setDeleteCommentId(null); }}
+      />
+    </div>
+  );
+}
+
+function StepIndicator({ label, done, active }: { label: string; done?: boolean; active?: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        className={`h-2.5 w-2.5 rounded-full ${
+          done ? "bg-blue-600" : active ? "bg-blue-400 animate-pulse" : "bg-gray-300"
+        }`}
+      />
+      <span className={`text-sm ${done ? "text-blue-700 font-medium" : active ? "text-blue-600" : "text-gray-400"}`}>
+        {label}
+      </span>
     </div>
   );
 }
@@ -338,7 +431,6 @@ function PreviewTab({
   isImage: boolean;
   isPdf: boolean;
 }) {
-  // If we have a page image from OCR, show that (with optional bbox overlay)
   const imageUrl = currentOcrPage?.page_image_url ?? doc.download_url;
 
   if (isPdf && !currentOcrPage?.page_image_url && doc.download_url) {
@@ -367,11 +459,13 @@ function OCRTextTab({
   allPages,
   documentId,
   onCorrected,
+  onSaveError,
 }: {
   currentOcrPage: OCRPageData | undefined;
   allPages: OCRPageData[];
   documentId: string;
   onCorrected: (updated: OCRPageData) => void;
+  onSaveError: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState("");
@@ -402,9 +496,8 @@ function OCRTextTab({
       );
       onCorrected(updated);
       setEditing(false);
-    } catch (e) {
-      console.error(e);
-      alert("保存に失敗しました");
+    } catch {
+      onSaveError();
     } finally {
       setSaving(false);
     }
@@ -451,7 +544,6 @@ function OCRTextTab({
         </pre>
       )}
 
-      {/* Block-level detail with confidence */}
       {!editing && currentOcrPage?.blocks && currentOcrPage.blocks.length > 0 && (
         <details className="mt-4">
           <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
@@ -513,21 +605,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    uploaded: { label: "アップロード済", cls: "bg-gray-100 text-gray-600" },
-    processing: { label: "処理中", cls: "bg-yellow-100 text-yellow-700 animate-pulse" },
-    completed: { label: "完了", cls: "bg-green-100 text-green-700" },
-    failed: { label: "失敗", cls: "bg-red-100 text-red-700" },
-  };
-  const s = map[status] || { label: status, cls: "bg-gray-100 text-gray-600" };
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.cls}`}>
-      {s.label}
-    </span>
-  );
-}
-
 function CategoryBadge({ category }: { category: string }) {
   const colorMap: Record<string, string> = {
     "契約書": "bg-purple-100 text-purple-700 border-purple-200",
@@ -551,12 +628,12 @@ function CategoryBadge({ category }: { category: string }) {
 
 function EntitiesCard({ entities }: { entities: Entities }) {
   const sections: { key: keyof Entities; label: string; icon: string }[] = [
-    { key: "people", label: "人名", icon: "👤" },
-    { key: "organizations", label: "組織名", icon: "🏢" },
-    { key: "dates", label: "日付", icon: "📅" },
-    { key: "amounts", label: "金額", icon: "💰" },
-    { key: "addresses", label: "住所", icon: "📍" },
-    { key: "references", label: "参照番号", icon: "🔗" },
+    { key: "people", label: "人名", icon: "P" },
+    { key: "organizations", label: "組織名", icon: "O" },
+    { key: "dates", label: "日付", icon: "D" },
+    { key: "amounts", label: "金額", icon: "A" },
+    { key: "addresses", label: "住所", icon: "L" },
+    { key: "references", label: "参照番号", icon: "R" },
   ];
 
   const hasAny = sections.some(
@@ -565,7 +642,7 @@ function EntitiesCard({ entities }: { entities: Entities }) {
   if (!hasAny) return null;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-amber-400 p-4">
       <h3 className="font-semibold mb-3">抽出エンティティ</h3>
       <div className="space-y-2">
         {sections.map((s) => {
@@ -573,7 +650,7 @@ function EntitiesCard({ entities }: { entities: Entities }) {
           if (!items || items.length === 0) return null;
           return (
             <div key={s.key} className="text-sm">
-              <span className="text-gray-500">{s.icon} {s.label}: </span>
+              <span className="text-gray-500">{s.label}: </span>
               <span className="text-gray-800">{items.join(", ")}</span>
             </div>
           );
@@ -587,14 +664,17 @@ function CommentPanel({
   documentId,
   comments,
   onRefresh,
+  onRequestDelete,
 }: {
   documentId: string;
   comments: CommentData[];
   onRefresh: () => void;
+  onRequestDelete: (commentId: string) => void;
 }) {
   const [newComment, setNewComment] = useState("");
   const [author, setAuthor] = useState("anonymous");
   const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async () => {
     if (!newComment.trim()) return;
@@ -605,21 +685,12 @@ function CommentPanel({
         author: author || "anonymous",
       });
       setNewComment("");
+      toast("コメントを追加しました", "success");
       onRefresh();
-    } catch (e) {
-      console.error(e);
+    } catch {
+      toast("コメントの追加に失敗しました", "error");
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (commentId: string) => {
-    if (!confirm("このコメントを削除しますか？")) return;
-    try {
-      await deleteComment(documentId, commentId);
-      onRefresh();
-    } catch (e) {
-      console.error(e);
     }
   };
 
@@ -627,7 +698,6 @@ function CommentPanel({
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="font-semibold mb-3">コメント ({comments.length})</h3>
 
-      {/* Comment list */}
       <div className="space-y-3 max-h-60 overflow-y-auto mb-3">
         {comments.length === 0 && (
           <p className="text-xs text-gray-400">コメントはまだありません</p>
@@ -641,7 +711,7 @@ function CommentPanel({
                   {new Date(c.created_at).toLocaleString("ja-JP")}
                 </span>
                 <button
-                  onClick={() => handleDelete(c.id)}
+                  onClick={() => onRequestDelete(c.id)}
                   className="text-xs text-red-400 hover:text-red-600"
                 >
                   削除
@@ -656,7 +726,6 @@ function CommentPanel({
         ))}
       </div>
 
-      {/* New comment form */}
       <div className="space-y-2">
         <input
           type="text"
@@ -675,7 +744,7 @@ function CommentPanel({
         <button
           onClick={handleSubmit}
           disabled={!newComment.trim() || submitting}
-          className="w-full text-xs bg-blue-600 text-white py-1.5 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="w-full text-xs bg-blue-600 text-white py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 transition"
         >
           {submitting ? "送信中..." : "コメント追加"}
         </button>
@@ -696,6 +765,7 @@ function ShareDialog({
   const [shareUrl, setShareUrl] = useState(doc.share_token ? `${window.location.origin}/shared/${doc.share_token}` : "");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
 
   const handleCreate = async () => {
     setLoading(true);
@@ -704,8 +774,9 @@ function ShareDialog({
       const url = `${window.location.origin}${data.share_url}`;
       setShareUrl(url);
       onUpdate({ ...doc, share_token: data.share_token, is_public: data.is_public });
-    } catch (e) {
-      console.error(e);
+      toast("共有リンクを作成しました", "success");
+    } catch {
+      toast("共有リンクの作成に失敗しました", "error");
     } finally {
       setLoading(false);
     }
@@ -717,8 +788,9 @@ function ShareDialog({
       await revokeShareLink(doc.id);
       setShareUrl("");
       onUpdate({ ...doc, share_token: null, is_public: false });
-    } catch (e) {
-      console.error(e);
+      toast("共有を取り消しました", "success");
+    } catch {
+      toast("共有の取り消しに失敗しました", "error");
     } finally {
       setLoading(false);
     }
@@ -732,7 +804,7 @@ function ShareDialog({
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 animate-fade-in">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">書類を共有</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">
@@ -751,7 +823,7 @@ function ShareDialog({
               />
               <button
                 onClick={handleCopy}
-                className="text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                className="text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
               >
                 {copied ? "コピー済!" : "コピー"}
               </button>
@@ -772,7 +844,7 @@ function ShareDialog({
             <button
               onClick={handleCreate}
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm transition"
             >
               {loading ? "作成中..." : "共有リンクを作成"}
             </button>
@@ -781,10 +853,4 @@ function ShareDialog({
       </div>
     </div>
   );
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

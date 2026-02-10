@@ -7,6 +7,7 @@ import {
   getDocument,
   type UploadResponse,
 } from "@/lib/api";
+import { formatSize } from "@/lib/format";
 import Link from "next/link";
 
 type UploadPhase = "pending" | "uploading" | "uploaded" | "processing" | "completed" | "failed" | "error";
@@ -45,7 +46,6 @@ export default function UploadPage() {
     maxSize: 100 * 1024 * 1024,
   });
 
-  // Warn before navigating away during active uploads
   useEffect(() => {
     const hasActive = files.some(
       (f) => f.phase === "uploading" || f.phase === "uploaded" || f.phase === "processing"
@@ -59,7 +59,6 @@ export default function UploadPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [files]);
 
-  // Poll OCR status for uploaded/processing documents
   useEffect(() => {
     const needsPolling = files.some(
       (f) => f.phase === "uploaded" || f.phase === "processing"
@@ -73,17 +72,15 @@ export default function UploadPage() {
       return;
     }
 
-    if (pollingRef.current) return; // already polling
+    if (pollingRef.current) return;
 
     pollingRef.current = setInterval(async () => {
       setFiles((prev) => {
-        // Check which docs need status update
         const toCheck = prev.filter(
           (f) => (f.phase === "uploaded" || f.phase === "processing") && f.result?.id
         );
         if (toCheck.length === 0) return prev;
 
-        // Fire async checks (update state on completion)
         toCheck.forEach((f) => {
           getDocument(f.result!.id)
             .then((doc) => {
@@ -164,21 +161,37 @@ export default function UploadPage() {
   const activeCount = files.filter(
     (f) => f.phase === "uploading" || f.phase === "uploaded" || f.phase === "processing"
   ).length;
+  const allDone = files.length > 0 && pendingCount === 0 && activeCount === 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <h2 className="text-2xl font-bold">書類アップロード</h2>
+
+      {/* Success banner */}
+      {allDone && doneCount > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+          <svg className="h-5 w-5 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-green-700 text-sm font-medium">
+            {doneCount} 件の書類が正常に処理されました
+          </span>
+          <Link href="/documents" className="ml-auto text-green-700 hover:text-green-800 text-sm underline">
+            書類一覧を見る
+          </Link>
+        </div>
+      )}
 
       {/* Dropzone */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition
-          ${isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400 hover:bg-gray-50"}`}
+        className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-200
+          ${isDragActive ? "border-blue-500 bg-blue-50 scale-[1.01]" : "border-gray-300 hover:border-blue-400 hover:bg-gray-50"}`}
       >
         <input {...getInputProps()} />
         <div className="space-y-2">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className={`mx-auto h-12 w-12 transition ${isDragActive ? "text-blue-500 animate-pulse" : "text-gray-400"}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -268,7 +281,6 @@ export default function UploadPage() {
                     </Link>
                   )}
                 </div>
-                {/* Progress bar */}
                 {(f.phase === "uploading" || f.phase === "uploaded" || f.phase === "processing") && (
                   <div className="mt-2 ml-14">
                     <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -377,10 +389,4 @@ function Spinner() {
       />
     </svg>
   );
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

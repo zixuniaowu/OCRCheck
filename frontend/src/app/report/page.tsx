@@ -158,7 +158,7 @@ export default function ReportPage() {
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
-        <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
+        <div className="px-4 sm:px-8 py-6 sm:py-8">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-8 mb-10 text-white">
             <h1 className="text-3xl font-bold mb-2">
