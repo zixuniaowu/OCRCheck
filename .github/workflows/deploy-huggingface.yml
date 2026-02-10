@@ -13,44 +13,20 @@ jobs:
         with:
           lfs: true
 
-      - name: Prepare and deploy to HF Spaces
+      - name: Prepare HF Space files
+        run: |
+          cp docker/Dockerfile.spaces Dockerfile
+          cp docker/README.hf.md README.md
+          chmod +x docker/start_spaces.sh
+
+      - name: Deploy to Hugging Face Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
         run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "::error::HF_TOKEN secret is not set"
-            exit 1
-          fi
-          if [ -z "$HF_SPACE_NAME" ]; then
-            echo "::error::HF_SPACE_NAME secret is not set"
-            exit 1
-          fi
+          if [ -z "$HF_TOKEN" ]; then echo "::error::HF_TOKEN not set"; exit 1; fi
+          if [ -z "$HF_SPACE_NAME" ]; then echo "::error::HF_SPACE_NAME not set"; exit 1; fi
           echo "Deploying to space: $HF_SPACE_NAME"
-
-          # Copy Dockerfile to root
-          cp docker/Dockerfile.spaces Dockerfile
-          chmod +x docker/start_spaces.sh
-
-          # Create HF Spaces README
-          cat > README.md << 'READMEEOF'
----
-title: OCRCheck
-emoji: 📄
-colorFrom: blue
-colorTo: green
-sdk: docker
-app_port: 7860
-pinned: false
-license: mit
----
-
-# OCRCheck - 書類スキャン・OCR・AI管理システム
-
-書類をアップロードしてOCRとAIで読み取り・データ化・検索できるシステム。
-READMEEOF
-
-          # Init a fresh git repo and force-push to HF (same pattern as studyforge)
           rm -rf .git
           git init -b main
           git config user.name "GitHub Actions"
