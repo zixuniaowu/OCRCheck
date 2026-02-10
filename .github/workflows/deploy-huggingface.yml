@@ -12,31 +12,29 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+          fetch-depth: 0
 
       - name: Prepare HF Space files
         run: |
-          # Copy Dockerfile.spaces to root as Dockerfile (HF expects it at root)
           cp docker/Dockerfile.spaces Dockerfile
 
-          # Create HF Spaces README with YAML frontmatter
-          cat > README.md << 'HFEOF'
-          ---
-          title: OCRCheck
-          emoji: 📄
-          colorFrom: blue
-          colorTo: green
-          sdk: docker
-          app_port: 7860
-          pinned: false
-          license: mit
-          ---
+          cat > README.md << 'EOF'
+---
+title: OCRCheck
+emoji: 📄
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
 
-          # OCRCheck - 書類スキャン・OCR・AI管理システム
+# OCRCheck - 書類スキャン・OCR・AI管理システム
 
-          書類をアップロードしてOCRとAIで読み取り・データ化・検索できるシステム。
-          HFEOF
+書類をアップロードしてOCRとAIで読み取り・データ化・検索できるシステム。
+EOF
 
-          # Ensure start script is executable
           chmod +x docker/start_spaces.sh
 
       - name: Deploy to Hugging Face Spaces
@@ -44,8 +42,21 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
         run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::HF_TOKEN secret is not set"
+            exit 1
+          fi
+          if [ -z "$HF_SPACE_NAME" ]; then
+            echo "::error::HF_SPACE_NAME secret is not set"
+            exit 1
+          fi
+          echo "Deploying to space: $HF_SPACE_NAME"
+
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add -A
           git commit -m "Deploy from GitHub Actions" --allow-empty
-          git push --force https://user:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE_NAME master:main
+
+          git remote add hf "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_NAME}" || true
+          git remote set-url hf "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_NAME}"
+          git push hf master:main --force
