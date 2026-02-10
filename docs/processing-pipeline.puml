@@ -1,0 +1,95 @@
+@startuml OCR_Processing_Pipeline
+!theme cerulean-outline
+skinparam defaultFontName "Noto Sans CJK JP"
+
+title OCRCheck - 書類処理パイプライン詳細フロー
+
+|ユーザー|
+start
+:書類をスキャナーでスキャン;
+:Webアプリからファイルアップロード\n(PDF / TIFF / JPEG / PNG);
+
+|システム - 取込|
+:ファイルをS3にアップロード\n(原本として保存);
+:メタデータ抽出\n- ファイル名、サイズ、日時\n- ページ数、解像度;
+:処理ジョブをキューに投入;
+
+|システム - OCR処理|
+:ページ画像に変換\n(PDFの場合、ページ単位に分割);
+
+fork
+    :レイアウト解析\n(PP-DocLayout);
+    note right
+        ページ内の領域を検出:
+        - テキスト領域
+        - 表・テーブル領域
+        - 画像領域
+        - ヘッダー・フッター
+    end note
+fork again
+    :画像前処理\n- 傾き補正 (Deskew)\n- ノイズ除去\n- コントラスト調整;
+end fork
+
+if (領域タイプ?) then (テキスト)
+    :PaddleOCR PP-OCRv5\nテキスト認識;
+    note right
+        日本語に最適化
+        縦書き対応
+        多言語混在対応
+    end note
+elseif (表・テーブル) then
+    :MinerU2.5\nテーブル構造抽出;
+    note right
+        セル単位でデータ化
+        行列構造を保持
+        CSV/JSON出力
+    end note
+elseif (画像) then
+    :画像分類・キャプション生成;
+    note right
+        写真の内容を説明
+        図表の種類を判定
+    end note
+else (その他)
+    :メタデータとして記録;
+endif
+
+|システム - AI理解|
+:Vision LLM (Claude / Gemini)\n文書全体の理解・構造化;
+note right
+    OCR結果を統合し:
+    - 文書種別を判定
+    - 重要情報を抽出
+    - 要約を生成
+    - タグを自動付与
+end note
+
+fork
+    :自動分類\n(契約書/請求書/報告書/etc.);
+fork again
+    :エンティティ抽出\n(人名/組織名/日付/金額);
+fork again
+    :要約生成\n(文書の概要を自動作成);
+fork again
+    :検索インデックス更新\n(Elasticsearch);
+end fork
+
+:処理結果をDB (PostgreSQL) に保存;
+:構造化データ (JSON) をS3に保存;
+:処理完了通知;
+
+|ユーザー|
+:処理結果を確認;
+
+if (修正が必要?) then (はい)
+    :OCR結果を手動修正;
+    :コメント・注釈を追加;
+    :修正内容をDBに保存;
+else (いいえ)
+endif
+
+:他ユーザーと共有\n(URL共有 / 権限管理);
+
+stop
+
+@enduml

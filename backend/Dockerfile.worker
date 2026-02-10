@@ -1,0 +1,60 @@
+###############################################################################
+# Stage 1: Convert PaddleOCR Japanese model to ONNX format
+###############################################################################
+FROM python:3.12-slim AS model-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir paddle2onnx paddlepaddle==3.0.0 packaging setuptools
+
+# Download Japan PP-OCRv3 recognition model directly
+RUN mkdir -p /models && \
+    curl -L https://paddleocr.bj.bcebos.com/PP-OCRv3/multilingual/japan_PP-OCRv3_rec_infer.tar \
+    -o /tmp/japan_rec.tar && \
+    tar xf /tmp/japan_rec.tar -C /models/ && \
+    rm /tmp/japan_rec.tar
+
+# Convert to ONNX
+RUN paddle2onnx \
+    --model_dir /models/japan_PP-OCRv3_rec_infer \
+    --model_filename inference.pdmodel \
+    --params_filename inference.pdiparams \
+    --save_file /models/japan_PP-OCRv3_rec.onnx \
+    --opset_version 14
+
+# Download the Japanese character dictionary from PaddleOCR
+RUN pip install --no-cache-dir paddleocr==2.9.1 && \
+    cp /usr/local/lib/python3.12/site-packages/paddleocr/ppocr/utils/dict/japan_dict.txt \
+       /models/japan_dict.txt
+
+###############################################################################
+# Stage 2: Runtime image with RapidOCR (ONNX Runtime, no PaddlePaddle)
+###############################################################################
+FROM python:3.12-slim
+
+# System deps required by OpenCV
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir uv setuptools
+
+COPY pyproject.toml .
+RUN uv pip install --system -e .
+
+COPY . .
+
+# Copy Japanese ONNX model and dictionary from builder stage
+COPY --from=model-builder /models/japan_PP-OCRv3_rec.onnx /app/models/japan_PP-OCRv3_rec.onnx
+COPY --from=model-builder /models/japan_dict.txt /app/models/japan_dict.txt
+
+CMD ["python", "-m", "app.workers.ocr_worker"]

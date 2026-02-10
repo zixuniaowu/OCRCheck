@@ -1,0 +1,133 @@
+@startuml OCRCheck_System_Architecture
+!theme cerulean-outline
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam defaultFontName "Noto Sans CJK JP"
+
+title OCRCheck - 書類スキャン・OCR管理システム アーキテクチャ図
+
+' ===== Actors =====
+actor "ユーザー\n(スキャン担当)" as Scanner
+actor "ユーザー\n(閲覧・編集)" as Viewer
+actor "管理者" as Admin
+
+' ===== Frontend =====
+package "フロントエンド (Next.js)" as Frontend {
+    component [ドキュメントビューア] as DocViewer
+    component [検索・分類UI] as SearchUI
+    component [注釈・コメントUI] as AnnotationUI
+    component [ダッシュボード] as Dashboard
+    component [ユーザー管理UI] as UserMgmt
+}
+
+' ===== API Layer =====
+package "APIレイヤー (FastAPI)" as API {
+    component [REST API] as RestAPI
+    component [WebSocket\n(リアルタイム共同編集)] as WS
+    component [認証・認可\n(JWT / OAuth2)] as Auth
+}
+
+' ===== Document Ingestion =====
+package "① 書類取込レイヤー" as Ingestion {
+    component [ファイルアップロード\nAPI] as Upload
+    component [フォーマット正規化\n(PDF/TIFF/JPEG→PNG)] as Normalize
+    component [メタデータ抽出\n(ファイル名・日時等)] as MetaExtract
+}
+
+' ===== Processing Pipeline =====
+package "② OCR処理パイプライン" as Pipeline {
+    queue "ジョブキュー\n(Redis / SQS)" as JobQueue
+
+    component [レイアウト解析\n(PP-DocLayout)] as Layout
+    component [テキストOCR\n(PaddleOCR PP-OCRv5)] as OCR
+    component [表・テーブル抽出\n(MinerU2.5)] as TableOCR
+    component [画像解析\n(物体検出・分類)] as ImageAnalysis
+}
+
+' ===== AI Understanding =====
+package "③ AI理解・分類レイヤー" as AILayer {
+    component [文書理解・構造化\n(Claude Vision /\n Gemini Pro)] as DocUnderstand
+    component [自動分類・タグ付け] as AutoClassify
+    component [要約生成] as Summary
+    component [エンティティ抽出\n(人名・日付・金額等)] as NER
+}
+
+' ===== Data Storage =====
+database "データストレージ" as Storage {
+    storage [Amazon S3\n(原本ファイル +\n 処理済みデータ)] as S3
+    database [PostgreSQL\n(メタデータ・\nユーザー情報・\nコメント)] as PG
+    database [Elasticsearch\n(全文検索\nインデックス)] as ES
+    storage [Redis\n(キャッシュ・\nセッション)] as Redis
+}
+
+' ===== Monitoring =====
+package "運用・監視" as Ops {
+    component [CloudWatch /\nPrometheus] as Monitor
+    component [ログ管理] as Logging
+}
+
+' ===== Connections: User → Frontend =====
+Scanner --> Upload : スキャンファイル\nアップロード
+Viewer --> DocViewer : 閲覧
+Viewer --> SearchUI : 検索
+Viewer --> AnnotationUI : 注釈・コメント
+Admin --> Dashboard : 管理
+Admin --> UserMgmt : ユーザー管理
+
+' ===== Frontend → API =====
+Frontend --> RestAPI : HTTP/HTTPS
+Frontend --> WS : WebSocket
+RestAPI --> Auth
+WS --> Auth
+
+' ===== API → Ingestion =====
+RestAPI --> Upload
+Upload --> Normalize
+Normalize --> MetaExtract
+MetaExtract --> S3 : 原本保存
+
+' ===== Ingestion → Pipeline =====
+MetaExtract --> JobQueue : 処理ジョブ投入
+
+' ===== Pipeline Internal =====
+JobQueue --> Layout
+Layout --> OCR : テキスト領域
+Layout --> TableOCR : 表領域
+Layout --> ImageAnalysis : 画像領域
+
+' ===== Pipeline → AI =====
+OCR --> DocUnderstand : OCR結果
+TableOCR --> DocUnderstand : テーブルデータ
+ImageAnalysis --> DocUnderstand : 画像情報
+DocUnderstand --> AutoClassify
+DocUnderstand --> Summary
+DocUnderstand --> NER
+
+' ===== AI → Storage =====
+AutoClassify --> PG : 分類結果
+Summary --> PG : 要約
+NER --> PG : エンティティ
+DocUnderstand --> ES : 検索インデックス
+DocUnderstand --> S3 : 構造化データ(JSON)
+
+' ===== API → Storage =====
+RestAPI --> PG
+RestAPI --> ES : 全文検索
+RestAPI --> S3 : ファイル取得
+RestAPI --> Redis
+
+' ===== Monitoring =====
+Pipeline ..> Monitor
+API ..> Monitor
+Monitor --> Logging
+
+' ===== Legend =====
+legend right
+  |= 色 |= レイヤー |
+  | ① | 書類取込 (スキャン → S3格納) |
+  | ② | OCR処理 (テキスト・表・画像読取) |
+  | ③ | AI理解 (分類・要約・構造化) |
+  | ④ | アプリ (検索・注釈・共有・協働) |
+endlegend
+
+@enduml

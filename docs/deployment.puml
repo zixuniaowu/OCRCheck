@@ -1,0 +1,104 @@
+@startuml OCRCheck_Deployment
+!theme cerulean-outline
+skinparam defaultFontName "Noto Sans CJK JP"
+
+title OCRCheck - AWS デプロイメント構成図
+
+cloud "AWS Cloud" {
+
+    node "VPC" {
+
+        frame "Public Subnet" {
+            node "ALB\n(Application Load Balancer)" as ALB
+            node "CloudFront\n(CDN)" as CF
+        }
+
+        frame "Private Subnet - App" {
+            node "ECS Fargate\nCluster" as ECS {
+                artifact "Next.js\nフロントエンド" as FrontContainer
+                artifact "FastAPI\nバックエンド" as APIContainer
+                artifact "WebSocket\nサーバー" as WSContainer
+            }
+        }
+
+        frame "Private Subnet - Processing" {
+            node "ECS Fargate\n(GPU対応)" as GPU_ECS {
+                artifact "OCR Worker\n(PaddleOCR)" as OCRWorker
+                artifact "Table Worker\n(MinerU2.5)" as TableWorker
+                artifact "Layout Worker\n(PP-DocLayout)" as LayoutWorker
+            }
+        }
+
+        frame "Private Subnet - Data" {
+            database "RDS PostgreSQL" as RDS
+            database "ElastiCache\n(Redis)" as ElastiCache
+            database "OpenSearch\n(Elasticsearch互換)" as OpenSearch
+        }
+    }
+
+    storage "S3 Bucket\n(書類原本 +\n処理済みデータ)" as S3
+
+    queue "SQS\n(処理ジョブキュー)" as SQS
+
+    node "Lambda\n(イベント処理)" as Lambda
+
+    node "Bedrock / 外部API\n(Claude / Gemini)" as LLM
+
+    node "Cognito\n(認証)" as Cognito
+
+    node "CloudWatch\n(監視・ログ)" as CW
+
+    node "ECR\n(コンテナレジストリ)" as ECR
+}
+
+actor "ユーザー" as User
+
+' Connections
+User --> CF : HTTPS
+CF --> ALB
+ALB --> FrontContainer
+ALB --> APIContainer
+ALB --> WSContainer
+
+APIContainer --> RDS
+APIContainer --> ElastiCache
+APIContainer --> OpenSearch
+APIContainer --> S3
+APIContainer --> SQS : ジョブ投入
+APIContainer --> Cognito : 認証
+
+SQS --> OCRWorker
+SQS --> TableWorker
+SQS --> LayoutWorker
+
+OCRWorker --> LLM : AI理解・分類
+OCRWorker --> S3 : 結果保存
+OCRWorker --> RDS : メタデータ保存
+OCRWorker --> OpenSearch : インデックス更新
+
+TableWorker --> S3
+LayoutWorker --> S3
+
+S3 --> Lambda : イベント通知
+Lambda --> SQS : 自動処理トリガー
+
+ECS --> ECR
+GPU_ECS --> ECR
+
+ECS --> CW
+GPU_ECS --> CW
+
+legend right
+    |= コンポーネント |= 用途 |
+    | CloudFront + ALB | HTTPS終端・負荷分散 |
+    | ECS Fargate | アプリサーバー (サーバーレス) |
+    | ECS Fargate (GPU) | OCR処理ワーカー |
+    | SQS | 非同期ジョブキュー |
+    | S3 | ファイルストレージ |
+    | RDS PostgreSQL | メタデータ・ユーザーDB |
+    | OpenSearch | 全文検索エンジン |
+    | Bedrock | AI文書理解 |
+    | Cognito | ユーザー認証 |
+endlegend
+
+@enduml
