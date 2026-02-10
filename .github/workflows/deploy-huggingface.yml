@@ -1,0 +1,51 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Prepare HF Space files
+        run: |
+          # Copy Dockerfile.spaces to root as Dockerfile (HF expects it at root)
+          cp docker/Dockerfile.spaces Dockerfile
+
+          # Create HF Spaces README with YAML frontmatter
+          cat > README.md << 'HFEOF'
+          ---
+          title: OCRCheck
+          emoji: 📄
+          colorFrom: blue
+          colorTo: green
+          sdk: docker
+          app_port: 7860
+          pinned: false
+          license: mit
+          ---
+
+          # OCRCheck - 書類スキャン・OCR・AI管理システム
+
+          書類をアップロードしてOCRとAIで読み取り・データ化・検索できるシステム。
+          HFEOF
+
+          # Ensure start script is executable
+          chmod +x docker/start_spaces.sh
+
+      - name: Deploy to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Deploy from GitHub Actions" --allow-empty
+          git push --force https://user:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE_NAME master:main
