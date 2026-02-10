@@ -41,6 +41,7 @@ class Document(Base):
     document_date: Mapped[str | None] = mapped_column(String(20), nullable=True)
     key_points: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     ai_raw_response: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    search_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Sharing
     share_token: Mapped[str | None] = mapped_column(
         String(64), nullable=True, unique=True, index=True

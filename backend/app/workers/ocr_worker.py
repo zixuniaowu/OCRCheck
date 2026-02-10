@@ -12,8 +12,6 @@ import signal
 import sys
 import time
 
-import boto3
-from botocore.config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -35,16 +33,21 @@ sync_db_url = settings.database_url.replace("+asyncpg", "+psycopg2")
 engine = create_engine(sync_db_url)
 SessionLocal = sessionmaker(bind=engine)
 
-# S3 client
-s3_config = Config(s3={"addressing_style": "path"}, signature_version="s3v4")
-s3_client = boto3.client(
-    "s3",
-    endpoint_url=settings.s3_endpoint_url,
-    aws_access_key_id=settings.s3_access_key,
-    aws_secret_access_key=settings.s3_secret_key,
-    config=s3_config,
-    region_name=settings.s3_region,
-)
+# S3 client (only if using S3 backend)
+s3_client = None
+if settings.storage_backend != "filesystem":
+    import boto3
+    from botocore.config import Config
+
+    s3_config = Config(s3={"addressing_style": "path"}, signature_version="s3v4")
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=settings.s3_endpoint_url,
+        aws_access_key_id=settings.s3_access_key,
+        aws_secret_access_key=settings.s3_secret_key,
+        config=s3_config,
+        region_name=settings.s3_region,
+    )
 
 # Graceful shutdown
 shutdown_flag = False
@@ -60,15 +63,22 @@ signal.signal(signal.SIGINT, handle_signal)
 signal.signal(signal.SIGTERM, handle_signal)
 
 
-def download_from_s3(s3_key: str) -> bytes:
-    resp = s3_client.get_object(Bucket=settings.s3_bucket_name, Key=s3_key)
+def download_file(key: str) -> bytes:
+    if settings.storage_backend == "filesystem":
+        from app.services.storage import storage_service
+        return storage_service.download_file_sync(key)
+    resp = s3_client.get_object(Bucket=settings.s3_bucket_name, Key=key)
     return resp["Body"].read()
 
 
-def upload_to_s3(s3_key: str, data: bytes, content_type: str = "image/png"):
+def upload_file(key: str, data: bytes, content_type: str = "image/png"):
+    if settings.storage_backend == "filesystem":
+        from app.services.storage import storage_service
+        storage_service.upload_file_sync(key, data, content_type)
+        return
     s3_client.put_object(
         Bucket=settings.s3_bucket_name,
-        Key=s3_key,
+        Key=key,
         Body=data,
         ContentType=content_type,
     )
@@ -122,28 +132,47 @@ def run_ai_analysis(doc: Document, ocr_text: str, images: list, db):
         # Don't fail the whole document processing
 
 
-def index_to_opensearch(doc: Document):
-    """Index the document in OpenSearch for full-text search."""
+def index_to_search(doc: Document):
+    """Index the document for full-text search."""
     try:
-        from app.services.search import index_document, ensure_index
-        ensure_index()
-        index_document(
-            document_id=str(doc.id),
-            original_filename=doc.original_filename,
-            content_type=doc.content_type,
-            ocr_text=doc.ocr_text,
-            summary=doc.summary,
-            category=doc.category,
-            tags=doc.tags,
-            entities=doc.entities,
-            key_points=doc.key_points,
-            document_date=doc.document_date,
-            page_count=doc.page_count,
-            file_size=doc.file_size,
-            created_at=doc.created_at.isoformat() if doc.created_at else None,
-        )
+        if settings.search_backend == "postgresql":
+            from app.services.search import pg_index_document, pg_ensure_index
+            pg_ensure_index()
+            pg_index_document(
+                document_id=str(doc.id),
+                original_filename=doc.original_filename,
+                content_type=doc.content_type,
+                ocr_text=doc.ocr_text,
+                summary=doc.summary,
+                category=doc.category,
+                tags=doc.tags,
+                entities=doc.entities,
+                key_points=doc.key_points,
+                document_date=doc.document_date,
+                page_count=doc.page_count,
+                file_size=doc.file_size,
+                created_at=doc.created_at.isoformat() if doc.created_at else None,
+            )
+        else:
+            from app.services.search import index_document, ensure_index
+            ensure_index()
+            index_document(
+                document_id=str(doc.id),
+                original_filename=doc.original_filename,
+                content_type=doc.content_type,
+                ocr_text=doc.ocr_text,
+                summary=doc.summary,
+                category=doc.category,
+                tags=doc.tags,
+                entities=doc.entities,
+                key_points=doc.key_points,
+                document_date=doc.document_date,
+                page_count=doc.page_count,
+                file_size=doc.file_size,
+                created_at=doc.created_at.isoformat() if doc.created_at else None,
+            )
     except Exception as e:
-        logger.exception(f"OpenSearch indexing failed: {e}")
+        logger.exception(f"Search indexing failed: {e}")
         # Don't fail the whole document processing
 
 
@@ -165,9 +194,9 @@ def process_document(document_id: str):
         db.commit()
         logger.info(f"Processing document: {doc.original_filename} ({document_id})")
 
-        # Download file from S3
-        file_bytes = download_from_s3(doc.s3_key)
-        logger.info(f"Downloaded {len(file_bytes)} bytes from S3: {doc.s3_key}")
+        # Download file
+        file_bytes = download_file(doc.s3_key)
+        logger.info(f"Downloaded {len(file_bytes)} bytes: {doc.s3_key}")
 
         # Convert to images
         images = prepare_images(file_bytes, doc.content_type)
@@ -182,10 +211,10 @@ def process_document(document_id: str):
             # Run OCR + table extraction
             page_result = process_page(img, extract_table=True)
 
-            # Save page image to S3
+            # Save page image
             page_s3_key = f"{doc.s3_key.rsplit('.', 1)[0]}/pages/{page_num:04d}.png"
             page_img_bytes = image_to_bytes(img)
-            upload_to_s3(page_s3_key, page_img_bytes)
+            upload_file(page_s3_key, page_img_bytes)
 
             # Save page OCR result to DB
             ocr_page = OCRPage(
@@ -221,8 +250,8 @@ def process_document(document_id: str):
         # --- Phase 3: AI Analysis ---
         run_ai_analysis(doc, full_ocr_text, images, db)
 
-        # --- Phase 4: Index in OpenSearch ---
-        index_to_opensearch(doc)
+        # --- Phase 4: Index for search ---
+        index_to_search(doc)
 
         doc.status = DocumentStatus.COMPLETED
         db.commit()

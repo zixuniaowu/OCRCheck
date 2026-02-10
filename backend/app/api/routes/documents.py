@@ -192,8 +192,13 @@ async def delete_document(document_id: uuid.UUID, db: AsyncSession = Depends(get
 
     # Remove from search index
     try:
-        from app.services.search import delete_document as search_delete
-        search_delete(str(document_id))
+        from app.config import settings as _settings
+        if _settings.search_backend == "postgresql":
+            from app.services.search import pg_delete_document
+            pg_delete_document(str(document_id))
+        else:
+            from app.services.search import delete_document as search_delete
+            search_delete(str(document_id))
     except Exception:
         pass
 

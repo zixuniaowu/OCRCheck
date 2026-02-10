@@ -1,11 +1,18 @@
-"""OpenSearch service for full-text search with Japanese (kuromoji) support."""
+"""Full-text search service.
+
+Supports two backends:
+- OpenSearch with kuromoji analyzer (default, for docker-compose)
+- PostgreSQL with pg_trgm (for HF Spaces single-container deploy)
+"""
 
 import logging
+import re
 from typing import Any
 
-from opensearchpy import OpenSearch
-
 from app.config import settings
+
+if settings.search_backend != "postgresql":
+    from opensearchpy import OpenSearch
 
 logger = logging.getLogger(__name__)
 
@@ -267,3 +274,231 @@ def search_documents(
         ]
 
     return {"hits": hits, "total": total, "facets": facets}
+
+
+# ---------------------------------------------------------------------------
+# PostgreSQL search backend (pg_trgm + LIKE for Japanese n-gram)
+# ---------------------------------------------------------------------------
+
+_pg_engine = None
+_pg_session_factory = None
+
+
+def _get_pg_session():
+    global _pg_engine, _pg_session_factory
+    if _pg_engine is None:
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        sync_url = settings.database_url.replace("+asyncpg", "+psycopg2")
+        _pg_engine = create_engine(sync_url)
+        _pg_session_factory = sessionmaker(bind=_pg_engine)
+    return _pg_session_factory()
+
+
+def pg_ensure_index():
+    """Create pg_trgm extension and GIN index on search_text."""
+    from sqlalchemy import text
+
+    db = _get_pg_session()
+    try:
+        db.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        db.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_documents_search_text_trgm "
+            "ON documents USING gin (search_text gin_trgm_ops)"
+        ))
+        db.commit()
+        logger.info("PostgreSQL pg_trgm index ensured")
+    finally:
+        db.close()
+
+
+def pg_index_document(
+    document_id: str,
+    original_filename: str,
+    content_type: str,
+    ocr_text: str | None,
+    summary: str | None,
+    category: str | None,
+    tags: list[str] | None,
+    entities: dict | None,
+    key_points: list[str] | None,
+    document_date: str | None,
+    page_count: int | None,
+    file_size: int,
+    created_at: str,
+):
+    """Update search_text column for a document."""
+    from sqlalchemy import text
+
+    parts = [
+        original_filename or "",
+        ocr_text or "",
+        summary or "",
+    ]
+    if key_points:
+        parts.extend(key_points)
+    if tags:
+        parts.extend(tags)
+    search_text = "\n".join(p for p in parts if p)
+
+    db = _get_pg_session()
+    try:
+        db.execute(
+            text("UPDATE documents SET search_text = :st WHERE id = :did"),
+            {"st": search_text, "did": document_id},
+        )
+        db.commit()
+        logger.info(f"Indexed document {document_id} in PostgreSQL search_text")
+    finally:
+        db.close()
+
+
+def pg_delete_document(document_id: str):
+    """Clear search_text for a document."""
+    from sqlalchemy import text
+
+    db = _get_pg_session()
+    try:
+        db.execute(
+            text("UPDATE documents SET search_text = NULL WHERE id = :did"),
+            {"did": document_id},
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def _highlight_text(text_content: str, query: str, context_chars: int = 75) -> list[str]:
+    """Generate highlighted snippets around query matches."""
+    if not text_content or not query:
+        return []
+    fragments = []
+    pattern = re.compile(re.escape(query), re.IGNORECASE)
+    for match in pattern.finditer(text_content):
+        start = max(0, match.start() - context_chars)
+        end = min(len(text_content), match.end() + context_chars)
+        snippet = text_content[start:end]
+        snippet = pattern.sub(lambda m: f"<mark>{m.group()}</mark>", snippet)
+        if start > 0:
+            snippet = "..." + snippet
+        if end < len(text_content):
+            snippet = snippet + "..."
+        fragments.append(snippet)
+        if len(fragments) >= 3:
+            break
+    return fragments
+
+
+def pg_search_documents(
+    query: str | None = None,
+    category: str | None = None,
+    tags: list[str] | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    skip: int = 0,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """PostgreSQL-based search returning same structure as OpenSearch version."""
+    from sqlalchemy import text
+
+    db = _get_pg_session()
+    try:
+        conditions = []
+        params: dict[str, Any] = {}
+
+        if query and query.strip():
+            conditions.append("search_text ILIKE :q")
+            params["q"] = f"%{query.strip()}%"
+
+        if category:
+            conditions.append("category = :cat")
+            params["cat"] = category
+
+        if tags:
+            for i, tag in enumerate(tags):
+                conditions.append(f"tags::jsonb ? :tag{i}")
+                params[f"tag{i}"] = tag
+
+        if date_from:
+            conditions.append("document_date >= :dfrom")
+            params["dfrom"] = date_from
+
+        if date_to:
+            conditions.append("document_date <= :dto")
+            params["dto"] = date_to
+
+        where = " AND ".join(conditions) if conditions else "TRUE"
+
+        # Count
+        count_sql = f"SELECT count(*) FROM documents WHERE {where}"
+        total = db.execute(text(count_sql), params).scalar() or 0
+
+        # Fetch results
+        fetch_sql = (
+            f"SELECT id, original_filename, content_type, ocr_text, summary, "
+            f"category, tags, entities, key_points, document_date, page_count, "
+            f"file_size, created_at "
+            f"FROM documents WHERE {where} "
+            f"ORDER BY created_at DESC "
+            f"LIMIT :lim OFFSET :off"
+        )
+        params["lim"] = limit
+        params["off"] = skip
+        rows = db.execute(text(fetch_sql), params).fetchall()
+
+        hits = []
+        for row in rows:
+            entities_val = row[7] or {}
+            highlights = {}
+            if query and query.strip():
+                ocr_hl = _highlight_text(row[3] or "", query.strip())
+                if ocr_hl:
+                    highlights["ocr_text"] = ocr_hl
+                summary_hl = _highlight_text(row[4] or "", query.strip())
+                if summary_hl:
+                    highlights["summary"] = summary_hl
+
+            hits.append({
+                "document_id": str(row[0]),
+                "original_filename": row[1],
+                "content_type": row[2],
+                "ocr_text": (row[3] or "")[:500],
+                "summary": row[4] or "",
+                "category": row[5],
+                "tags": row[6] or [],
+                "entities_people": entities_val.get("people", []),
+                "entities_organizations": entities_val.get("organizations", []),
+                "page_count": row[10],
+                "file_size": row[11],
+                "document_date": row[9],
+                "created_at": row[12].isoformat() if row[12] else None,
+                "_score": None,
+                "_highlights": highlights,
+            })
+
+        # Facets
+        cat_sql = (
+            f"SELECT category, count(*) FROM documents "
+            f"WHERE category IS NOT NULL AND ({where}) "
+            f"GROUP BY category ORDER BY count(*) DESC LIMIT 20"
+        )
+        cat_rows = db.execute(text(cat_sql), params).fetchall()
+        categories_facet = [{"key": r[0], "count": r[1]} for r in cat_rows]
+
+        tag_sql = (
+            f"SELECT tag, count(*) FROM documents, "
+            f"jsonb_array_elements_text(COALESCE(tags, '[]'::jsonb)) AS tag "
+            f"WHERE ({where}) "
+            f"GROUP BY tag ORDER BY count(*) DESC LIMIT 50"
+        )
+        tag_rows = db.execute(text(tag_sql), params).fetchall()
+        tags_facet = [{"key": r[0], "count": r[1]} for r in tag_rows]
+
+        return {
+            "hits": hits,
+            "total": total,
+            "facets": {"categories": categories_facet, "tags": tags_facet},
+        }
+    finally:
+        db.close()

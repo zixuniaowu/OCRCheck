@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 
-from app.services.search import search_documents
+from app.config import settings
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -19,13 +19,28 @@ async def search(
     Search documents with full-text query and filters.
     Returns results with highlights and facets.
     """
-    result = search_documents(
-        query=q,
-        category=category,
-        tags=tags,
-        date_from=date_from,
-        date_to=date_to,
-        skip=skip,
-        limit=limit,
-    )
+    if settings.search_backend == "postgresql":
+        from app.services.search import pg_search_documents
+
+        result = pg_search_documents(
+            query=q,
+            category=category,
+            tags=tags,
+            date_from=date_from,
+            date_to=date_to,
+            skip=skip,
+            limit=limit,
+        )
+    else:
+        from app.services.search import search_documents
+
+        result = search_documents(
+            query=q,
+            category=category,
+            tags=tags,
+            date_from=date_from,
+            date_to=date_to,
+            skip=skip,
+            limit=limit,
+        )
     return result

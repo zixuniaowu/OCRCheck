@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     ai_max_tokens: int = 4096
     ai_enabled: bool = True  # set False to skip AI analysis
 
+    # Backend selection (for HF Spaces single-container deploy)
+    storage_backend: str = "s3"  # "s3" or "filesystem"
+    upload_dir: str = "/data/uploads"  # used when storage_backend="filesystem"
+    search_backend: str = "opensearch"  # "opensearch" or "postgresql"
+
     # App
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
