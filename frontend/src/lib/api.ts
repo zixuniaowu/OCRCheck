@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:9001";
+// Use nullish coalescing: empty string "" means "same origin" (HF Spaces),
+// only fall back to localhost when the env var is truly unset.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:9001";
 
 export interface Entities {
   people: string[];
@@ -218,7 +220,10 @@ export async function searchDocuments(params: {
   skip?: number;
   limit?: number;
 }): Promise<SearchResponse> {
-  const url = new URL(`${API_BASE}/api/search/`);
+  const url = new URL(
+    `${API_BASE}/api/search/`,
+    typeof window !== "undefined" ? window.location.origin : undefined
+  );
   if (params.q) url.searchParams.set("q", params.q);
   if (params.category) url.searchParams.set("category", params.category);
   if (params.tags) {
@@ -252,7 +257,8 @@ export async function listComments(
   pageNumber?: number
 ): Promise<CommentData[]> {
   const url = new URL(
-    `${API_BASE}/api/documents/${documentId}/comments/`
+    `${API_BASE}/api/documents/${documentId}/comments/`,
+    typeof window !== "undefined" ? window.location.origin : undefined
   );
   if (pageNumber !== undefined)
     url.searchParams.set("page_number", String(pageNumber));
