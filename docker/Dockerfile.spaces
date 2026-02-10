@@ -72,8 +72,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.12 python3.12-venv python3.12-dev python3-pip \
     # Nginx
     nginx \
-    # Supervisor
-    supervisor \
     # OpenCV deps
     libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 \
     # Node.js 22
@@ -89,6 +87,9 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
 # Install pip for python3.12
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
+
+# Install supervisor via pip (apt version is incompatible with Python 3.12)
+RUN pip install --no-cache-dir supervisor
 
 # --- Backend setup ---
 WORKDIR /app/backend
@@ -112,6 +113,7 @@ COPY --from=frontend-builder /frontend/.next/static /app/frontend/.next/static
 COPY docker/nginx-spaces.conf /etc/nginx/sites-available/default
 
 # --- Supervisor config ---
+RUN mkdir -p /etc/supervisor/conf.d
 COPY docker/supervisord.conf /etc/supervisor/conf.d/ocrcheck.conf
 
 # --- Entrypoint script ---

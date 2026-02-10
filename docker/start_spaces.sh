@@ -38,4 +38,4 @@ rm -f /etc/nginx/sites-enabled/default
 ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 echo "Starting supervisord..."
-exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+exec /usr/local/bin/supervisord -c /etc/supervisor/conf.d/ocrcheck.conf
