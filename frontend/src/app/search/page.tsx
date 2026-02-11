@@ -255,7 +255,7 @@ export default function SearchPage() {
             <>
               <div className="space-y-3">
                 {result?.hits.map((hit) => (
-                  <SearchResultCard key={hit.document_id} hit={hit} />
+                  <SearchResultCard key={hit.document_id} hit={hit} query={query} />
                 ))}
               </div>
 
@@ -290,8 +290,11 @@ export default function SearchPage() {
   );
 }
 
-function SearchResultCard({ hit }: { hit: SearchHit }) {
+function SearchResultCard({ hit, query }: { hit: SearchHit; query: string }) {
   const highlights = hit._highlights || {};
+  const href = query
+    ? `/documents/${hit.document_id}?q=${encodeURIComponent(query)}`
+    : `/documents/${hit.document_id}`;
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4 hover:border-blue-300 transition">
@@ -299,7 +302,7 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Link
-              href={`/documents/${hit.document_id}`}
+              href={href}
               className="text-blue-600 hover:underline font-medium truncate"
             >
               {hit.original_filename}

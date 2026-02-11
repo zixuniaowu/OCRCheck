@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   getDocument,
@@ -22,11 +22,33 @@ import { formatSize, formatDateTime } from "@/lib/format";
 import StatusBadge from "../../_components/StatusBadge";
 import Breadcrumb from "../../_components/Breadcrumb";
 import ConfirmDialog from "../../_components/ConfirmDialog";
+import HighlightOverlay from "../../_components/HighlightOverlay";
 import { useToast } from "../../_components/Toast";
+
+interface MatchInfo {
+  pageNumber: number;
+  matchCount: number;
+}
+
+function findMatches(ocrPages: OCRPageData[], query: string): MatchInfo[] {
+  if (!query) return [];
+  const lowerQ = query.toLowerCase();
+  return ocrPages
+    .map((page) => ({
+      pageNumber: page.page_number,
+      matchCount: (page.blocks ?? []).filter((b) =>
+        b.text.toLowerCase().includes(lowerQ)
+      ).length,
+    }))
+    .filter((p) => p.matchCount > 0);
+}
 
 export default function DocumentDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const id = params.id as string;
+  const searchQuery = searchParams.get("q") || "";
   const [doc, setDoc] = useState<DocumentData | null>(null);
   const [ocrPages, setOcrPages] = useState<OCRPageData[]>([]);
   const [comments, setComments] = useState<CommentData[]>([]);
@@ -36,7 +58,39 @@ export default function DocumentDetailPage() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"reprocess" | "delete-comment" | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
+  const [didAutoJump, setDidAutoJump] = useState(false);
   const { toast } = useToast();
+
+  const matches = useMemo(
+    () => findMatches(ocrPages, searchQuery),
+    [ocrPages, searchQuery]
+  );
+
+  const matchPageIndex = matches.findIndex((m) => m.pageNumber === activePage);
+
+  // Auto-jump to first match page when data loads
+  useEffect(() => {
+    if (searchQuery && matches.length > 0 && !didAutoJump) {
+      setActivePage(matches[0].pageNumber);
+      setDidAutoJump(true);
+    }
+  }, [searchQuery, matches, didAutoJump]);
+
+  const clearSearch = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("q");
+    router.replace(url.pathname);
+  };
+
+  const goToMatchPage = (direction: "prev" | "next") => {
+    if (matches.length === 0) return;
+    const idx = matchPageIndex === -1 ? 0 : matchPageIndex;
+    const nextIdx =
+      direction === "next"
+        ? (idx + 1) % matches.length
+        : (idx - 1 + matches.length) % matches.length;
+    setActivePage(matches[nextIdx].pageNumber);
+  };
 
   const fetchData = () => {
     setLoading(true);
@@ -215,6 +269,71 @@ export default function DocumentDetailPage() {
             </div>
           )}
 
+          {/* Search highlight bar */}
+          {searchQuery && matches.length > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+              <svg className="h-4 w-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span className="text-blue-800">
+                &quot;{searchQuery}&quot; &mdash;{" "}
+                {matches.reduce((s, m) => s + m.matchCount, 0)}件マッチ
+              </span>
+              <span className="text-blue-600">
+                (ページ{" "}
+                {matches.map((m, i) => (
+                  <span key={m.pageNumber}>
+                    {i > 0 && ", "}
+                    <button
+                      onClick={() => setActivePage(m.pageNumber)}
+                      className={`hover:underline ${
+                        m.pageNumber === activePage ? "font-bold" : ""
+                      }`}
+                    >
+                      {m.pageNumber}
+                    </button>
+                  </span>
+                ))}
+                )
+              </span>
+              <div className="ml-auto flex items-center gap-1">
+                <button
+                  onClick={() => goToMatchPage("prev")}
+                  className="px-2 py-0.5 border border-blue-300 rounded text-xs text-blue-700 hover:bg-blue-100"
+                >
+                  前へ
+                </button>
+                <button
+                  onClick={() => goToMatchPage("next")}
+                  className="px-2 py-0.5 border border-blue-300 rounded text-xs text-blue-700 hover:bg-blue-100"
+                >
+                  次へ
+                </button>
+                <button
+                  onClick={clearSearch}
+                  className="ml-1 px-2 py-0.5 text-xs text-blue-500 hover:text-blue-700"
+                >
+                  クリア
+                </button>
+              </div>
+            </div>
+          )}
+
+          {searchQuery && matches.length === 0 && ocrPages.length > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500">
+              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              &quot;{searchQuery}&quot; のマッチはありません
+              <button
+                onClick={clearSearch}
+                className="ml-auto text-xs text-gray-400 hover:text-gray-600"
+              >
+                クリア
+              </button>
+            </div>
+          )}
+
           {/* Tab content */}
           <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4 min-h-[400px]">
             {activeTab === "preview" && (
@@ -223,6 +342,7 @@ export default function DocumentDetailPage() {
                 currentOcrPage={currentOcrPage}
                 isImage={isImage}
                 isPdf={isPdf}
+                searchQuery={searchQuery}
               />
             )}
             {activeTab === "ocr" && (
@@ -425,12 +545,38 @@ function PreviewTab({
   currentOcrPage,
   isImage,
   isPdf,
+  searchQuery,
 }: {
   doc: DocumentData;
   currentOcrPage: OCRPageData | undefined;
   isImage: boolean;
   isPdf: boolean;
+  searchQuery: string;
 }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgSize, setImgSize] = useState({ rendered: { w: 0, h: 0 } });
+
+  const updateImgSize = useCallback(() => {
+    const el = imgRef.current;
+    if (!el || !el.clientWidth) return;
+    setImgSize((prev) => {
+      if (prev.rendered.w === el.clientWidth && prev.rendered.h === el.clientHeight) return prev;
+      return { rendered: { w: el.clientWidth, h: el.clientHeight } };
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = imgRef.current;
+    if (!el) return;
+    // Check immediately in case image is already loaded from cache
+    if (el.complete && el.clientWidth > 0) {
+      updateImgSize();
+    }
+    const observer = new ResizeObserver(updateImgSize);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [updateImgSize]);
+
   const imageUrl = currentOcrPage?.page_image_url ?? doc.download_url;
 
   if (isPdf && !currentOcrPage?.page_image_url && doc.download_url) {
@@ -445,8 +591,24 @@ function PreviewTab({
 
   if (imageUrl) {
     return (
-      <div className="relative">
-        <img src={imageUrl} alt={doc.original_filename} className="max-w-full rounded" />
+      <div className="relative inline-block">
+        <img
+          ref={imgRef}
+          src={imageUrl}
+          alt={doc.original_filename}
+          className="max-w-full rounded"
+          onLoad={updateImgSize}
+        />
+        {searchQuery && currentOcrPage?.blocks && currentOcrPage.width > 0 && (
+          <HighlightOverlay
+            blocks={currentOcrPage.blocks}
+            query={searchQuery}
+            imageNaturalWidth={currentOcrPage.width}
+            imageNaturalHeight={currentOcrPage.height}
+            imageRenderedWidth={imgSize.rendered.w}
+            imageRenderedHeight={imgSize.rendered.h}
+          />
+        )}
       </div>
     );
   }

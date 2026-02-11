@@ -6,7 +6,7 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
   return (
     <h2
       id={id}
-      className="text-2xl font-bold text-gray-800 mt-12 mb-4 pb-2 border-b-2 border-blue-200 scroll-mt-6"
+      className="text-3xl font-bold text-gray-800 mt-14 mb-5 pb-3 border-b-2 border-blue-200 scroll-mt-6"
     >
       {children}
     </h2>
@@ -15,7 +15,7 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
 
 function SubTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xl font-semibold text-gray-700 mt-8 mb-3">
+    <h3 className="text-2xl font-semibold text-gray-700 mt-10 mb-4">
       {children}
     </h3>
   );
@@ -23,14 +23,14 @@ function SubTitle({ children }: { children: React.ReactNode }) {
 
 function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-x-auto my-4">
-      <table className="min-w-full border border-gray-200 text-sm">
+    <div className="overflow-x-auto my-5">
+      <table className="min-w-full border border-gray-200 text-base">
         <thead>
           <tr className="bg-blue-50">
             {headers.map((h, i) => (
               <th
                 key={i}
-                className="px-4 py-2.5 text-left font-semibold text-gray-700 border-b border-gray-200"
+                className="px-5 py-3 text-left font-semibold text-gray-700 border-b border-gray-200"
               >
                 {h}
               </th>
@@ -43,7 +43,7 @@ function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
               {row.map((cell, ci) => (
                 <td
                   key={ci}
-                  className="px-4 py-2 border-b border-gray-100 text-gray-600"
+                  className="px-5 py-3 border-b border-gray-100 text-gray-600"
                   dangerouslySetInnerHTML={{ __html: cell }}
                 />
               ))}
@@ -57,7 +57,7 @@ function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
 
 function CodeBlock({ children }: { children: string }) {
   return (
-    <pre className="bg-gray-800 text-gray-100 rounded-lg p-4 my-4 overflow-x-auto text-sm leading-relaxed">
+    <pre className="bg-gray-800 text-gray-100 rounded-lg p-5 my-5 overflow-x-auto text-base leading-relaxed">
       {children}
     </pre>
   );
@@ -93,7 +93,7 @@ export default function ReportPage() {
         className={`
           fixed top-0 left-0 h-screen z-50 bg-white border-r border-gray-200
           pt-16 overflow-y-auto transition-transform duration-200
-          w-64
+          w-72
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0 lg:static lg:z-auto lg:flex-shrink-0
         `}
@@ -122,7 +122,7 @@ export default function ReportPage() {
                 key={item.id}
                 href={`#${item.id}`}
                 onClick={() => setSidebarOpen(false)}
-                className="block px-3 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors"
+                className="block px-3 py-2.5 text-base text-gray-600 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors"
               >
                 {item.label}
               </a>
@@ -160,19 +160,19 @@ export default function ReportPage() {
       <main className="flex-1 min-w-0">
         <div className="px-4 sm:px-8 py-6 sm:py-8">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-8 mb-10 text-white">
-            <h1 className="text-3xl font-bold mb-2">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-10 mb-12 text-white">
+            <h1 className="text-4xl font-bold mb-3">
               OCRCheck 可行性調査報告書
             </h1>
-            <p className="text-blue-100 text-lg">
+            <p className="text-blue-100 text-xl">
               書類スキャン・OCR・AI管理システム POC
             </p>
-            <div className="flex gap-6 mt-4 text-sm text-blue-200">
-              <span>作成日: 2026年2月9日</span>
+            <div className="flex gap-6 mt-5 text-base text-blue-200">
+              <span>作成日: 2026年2月</span>
               <span>
                 ステータス:{" "}
-                <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                  POC検討段階
+                <span className="inline-block px-2.5 py-0.5 rounded text-sm font-medium bg-green-100 text-green-800">
+                  POCデモ稼働中
                 </span>
               </span>
             </div>
@@ -182,7 +182,7 @@ export default function ReportPage() {
           <SectionTitle id="overview">1. プロジェクト概要</SectionTitle>
 
           <SubTitle>1.1 背景</SubTitle>
-          <p className="text-gray-600 leading-relaxed mb-4">
+          <p className="text-gray-600 text-lg leading-relaxed mb-5">
             大量の事務書類をスキャンし、OCRやAIを使って読み取り・データ化・管理する処理システムの開発を検討。
             書類には多様なフォーマット（テキスト、表、写真添付など）が混在しており、統一的なデジタル管理基盤が求められている。
           </p>
@@ -235,8 +235,8 @@ export default function ReportPage() {
           />
 
           <SubTitle>2.4 推奨構成</SubTitle>
-          <div className="bg-blue-50 rounded-lg p-6 my-4 border border-blue-200">
-            <p className="font-bold text-blue-800 mb-2">ハイブリッドパイプライン方式を推奨</p>
+          <div className="bg-blue-50 rounded-lg p-6 my-5 border border-blue-200">
+            <p className="font-bold text-blue-800 text-lg mb-3">ハイブリッドパイプライン方式を推奨</p>
             <CodeBlock>{`専用OCRエンジン (文字認識精度重視)
   + Vision LLM (文書理解・構造化・分類)`}</CodeBlock>
           </div>
@@ -256,23 +256,23 @@ export default function ReportPage() {
           <SectionTitle id="current-poc">3. 現在のPOC実装状況</SectionTitle>
 
           <div className="bg-amber-50 rounded-lg p-6 border border-amber-200 my-6">
-            <h3 className="text-lg font-bold text-amber-800 mb-3">
+            <h3 className="text-xl font-bold text-amber-800 mb-3">
               現在稼働中のデモ環境
             </h3>
-            <p className="text-amber-700 mb-2">
+            <p className="text-amber-700 text-lg mb-2">
               本報告書に記載のシステムは、POCデモとして実際に稼働しています。
-              以下のリンクからアップロード・OCR・検索を体験できます。
+              以下のリンクからアップロード・OCR・検索・AI分析を体験できます。
             </p>
-            <div className="flex gap-4 mt-3">
+            <div className="flex gap-4 mt-4">
               <a
                 href="/"
-                className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg text-base font-medium hover:bg-blue-700 transition-colors"
               >
                 デモを試す →
               </a>
               <a
                 href="/upload"
-                className="inline-block px-4 py-2 bg-white border border-blue-300 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
+                className="inline-block px-5 py-2.5 bg-white border border-blue-300 text-blue-600 rounded-lg text-base font-medium hover:bg-blue-50 transition-colors"
               >
                 書類をアップロード
               </a>
@@ -287,21 +287,21 @@ export default function ReportPage() {
               ["認識モデル", "<strong>PP-OCRv3 日本語</strong> (japan_PP-OCRv3_rec)", "PaddleOCRの日本語特化認識モデル"],
               ["検出モデル", "PP-OCRv3 デフォルト (det)", "RapidOCR標準の検出モデル"],
               ["分類モデル", "PP-OCRv3 デフォルト (cls)", "テキスト方向分類"],
-              ["AI文書分析", "Claude Vision API (オプション)", "APIキー設定時のみ有効、分類・要約・エンティティ抽出"],
-              ["実行環境", "CPU Basic (HF Spaces)", "GPU未使用、ONNX Runtimeによる推論"],
+              ["AI文書分析", "Claude Vision API (オプション)", "分類・要約・エンティティ抽出を自動実行"],
+              ["実行環境", "Docker コンテナ (CPU)", "ONNX Runtimeによる推論。GPU導入で3-5倍高速化可能"],
             ]}
           />
 
           <SubTitle>3.2 現在の認識精度</SubTitle>
 
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 my-4 text-sm text-gray-600">
+          <div className="bg-gray-50 rounded-lg p-5 border border-gray-200 my-5 text-base text-gray-600">
             <p>
               OCRはすべて<strong>ローカルモデル</strong>で実行（外部クラウドOCR APIは不使用）。
-              RapidOCR + ONNX Runtimeによるサーバー内推論のため、データが外部に送信されることはありません。
+              サーバー内推論のため、<strong>書類データが外部に送信されることはありません</strong>（セキュリティ面で安心）。
             </p>
           </div>
 
-          <p className="font-semibold text-gray-700 mt-6 mb-2">印刷文字（活字）の認識精度</p>
+          <p className="font-semibold text-gray-700 text-lg mt-6 mb-3">印刷文字（活字）の認識精度</p>
           <Table
             headers={["文書タイプ", "文字認識精度", "処理時間", "備考"]}
             rows={[
@@ -312,7 +312,7 @@ export default function ReportPage() {
             ]}
           />
 
-          <p className="font-semibold text-gray-700 mt-6 mb-2">手書き文字の認識精度</p>
+          <p className="font-semibold text-gray-700 text-lg mt-6 mb-3">手書き文字の認識精度</p>
           <Table
             headers={["手書きタイプ", "文字認識精度", "備考"]}
             rows={[
@@ -322,13 +322,16 @@ export default function ReportPage() {
             ]}
           />
 
-          <div className="bg-red-50 rounded-lg p-4 border border-red-200 my-4 text-sm">
-            <p className="font-semibold text-red-700 mb-1">手書き認識の制約:</p>
-            <p className="text-red-600">
-              現在のPP-OCRv3は活字（印刷文字）に最適化されており、手書き文字の認識精度は実用レベルに達していません。
-              手書き対応が必要な場合は、PP-OCRv5への更新（手書きモデル追加）またはVision LLM（Claude/Gemini）による
-              画像直接認識を推奨します。
+          <div className="bg-amber-50 rounded-lg p-5 border border-amber-200 my-5 text-base">
+            <p className="font-semibold text-amber-800 mb-2">手書き認識について:</p>
+            <p className="text-amber-700">
+              現在のPOCは活字（印刷文字）に最適化されています。手書き文字は認識可能ですが精度に制限があります。
+              本番フェーズでは以下の改善策により手書き精度の大幅向上が見込めます:
             </p>
+            <ul className="mt-2 space-y-1 text-amber-700">
+              <li>・PP-OCRv5への更新（手書きモデル追加、精度+10-20%向上見込み）</li>
+              <li>・Vision LLM（Claude/Gemini）による画像直接認識で高精度な手書き読取り</li>
+            </ul>
           </div>
 
           <SubTitle>3.3 精度向上の改善計画</SubTitle>
@@ -343,11 +346,16 @@ export default function ReportPage() {
             ]}
           />
 
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 my-4 text-sm text-gray-600">
-            <p className="font-semibold text-gray-700 mb-1">現在のPOC → 本番への精度ロードマップ:</p>
-            <p>
-              現在 ~95% (PP-OCRv3 + CPU) → Phase 1: ~97% (PP-OCRv5) → Phase 2: ~98-99% (+ Vision LLM補正 + GPU)
-            </p>
+          <div className="bg-blue-50 rounded-lg p-5 border border-blue-200 my-5 text-base">
+            <p className="font-bold text-blue-800 mb-2">現在のPOC → 本番への精度ロードマップ:</p>
+            <div className="flex items-center gap-3 text-blue-700 flex-wrap">
+              <span className="px-3 py-1 bg-white rounded-lg border border-blue-200 font-medium">現在 ~95%</span>
+              <span>→</span>
+              <span className="px-3 py-1 bg-white rounded-lg border border-blue-200 font-medium">Phase 1: ~97%</span>
+              <span>→</span>
+              <span className="px-3 py-1 bg-blue-100 rounded-lg border border-blue-300 font-bold">Phase 2: ~98-99%</span>
+            </div>
+            <p className="text-blue-600 mt-2 text-sm">PP-OCRv3 + CPU → PP-OCRv5 → + Vision LLM補正 + GPU</p>
           </div>
 
           {/* 4. Architecture */}
@@ -371,22 +379,22 @@ export default function ReportPage() {
 
           <SubTitle>4.2 コンポーネント一覧</SubTitle>
           <Table
-            headers={["レイヤー", "コンポーネント", "技術"]}
+            headers={["レイヤー", "コンポーネント", "POC (現在)", "本番構成"]}
             rows={[
-              ["フロントエンド", "Webアプリ", "Next.js 15 + TypeScript"],
-              ["フロントエンド", "ドキュメントビューア", "PDF.js + Canvas"],
-              ["フロントエンド", "注釈・コメント", "Collaborative annotation (WebSocket)"],
-              ["バックエンド", "REST API", "FastAPI (Python)"],
-              ["バックエンド", "認証", "AWS Cognito / NextAuth.js"],
-              ["処理パイプライン", "ジョブキュー", "Redis (ElastiCache) / SQS"],
-              ["処理パイプライン", "OCR処理", "PaddleOCR PP-OCRv5"],
-              ["処理パイプライン", "表抽出", "MinerU2.5"],
-              ["処理パイプライン", "AI文書理解", "Claude API / Gemini API"],
-              ["データストア", "ファイルストレージ", "Amazon S3"],
-              ["データストア", "メタデータDB", "PostgreSQL (RDS)"],
-              ["データストア", "全文検索", "OpenSearch (Elasticsearch互換)"],
-              ["インフラ", "コンテナ実行", "ECS Fargate"],
-              ["インフラ", "GPU処理", "ECS Fargate (GPU) / SageMaker"],
+              ["フロントエンド", "Webアプリ", "<span class='text-green-600'>✅</span> Next.js 15 + TypeScript", "同左"],
+              ["フロントエンド", "ドキュメントビューア", "<span class='text-green-600'>✅</span> PDF/画像プレビュー", "PDF.js + Canvas"],
+              ["フロントエンド", "コメント・共有", "<span class='text-green-600'>✅</span> コメント + URL共有", "リアルタイム協働編集 (WebSocket)"],
+              ["バックエンド", "REST API", "<span class='text-green-600'>✅</span> FastAPI (Python)", "同左"],
+              ["バックエンド", "認証", "—（POCは認証なし）", "AWS Cognito / NextAuth.js"],
+              ["処理パイプライン", "ジョブキュー", "<span class='text-green-600'>✅</span> Redis", "Redis (ElastiCache) / SQS"],
+              ["処理パイプライン", "OCR処理", "<span class='text-green-600'>✅</span> RapidOCR (PP-OCRv3)", "PaddleOCR PP-OCRv5 (GPU)"],
+              ["処理パイプライン", "表抽出", "—（次期対応）", "MinerU2.5"],
+              ["処理パイプライン", "AI文書理解", "<span class='text-green-600'>✅</span> Claude Vision API", "Claude / Gemini API"],
+              ["データストア", "ファイルストレージ", "<span class='text-green-600'>✅</span> MinIO (S3互換)", "Amazon S3"],
+              ["データストア", "メタデータDB", "<span class='text-green-600'>✅</span> PostgreSQL", "PostgreSQL (RDS)"],
+              ["データストア", "全文検索", "<span class='text-green-600'>✅</span> OpenSearch + kuromoji", "OpenSearch Service"],
+              ["インフラ", "コンテナ実行", "<span class='text-green-600'>✅</span> Docker Compose", "ECS Fargate"],
+              ["インフラ", "GPU処理", "— (CPU推論)", "ECS Fargate (GPU) / SageMaker"],
             ]}
           />
 
@@ -445,20 +453,21 @@ export default function ReportPage() {
           {/* 6. POC Plan */}
           <SectionTitle id="poc-plan">6. POC実施計画</SectionTitle>
 
-          <SubTitle>6.1 POCスコープ</SubTitle>
+          <SubTitle>6.1 POCスコープと進捗</SubTitle>
           <Table
-            headers={["Phase", "内容", "期間目安"]}
+            headers={["Phase", "内容", "期間目安", "状況"]}
             rows={[
-              ["<strong>Phase 1</strong>", "環境構築 + ファイルアップロード + S3格納", "1週間"],
-              ["<strong>Phase 2</strong>", "OCRパイプライン (PaddleOCR + MinerU)", "2週間"],
-              ["<strong>Phase 3</strong>", "AI文書理解・分類 (Claude/Gemini連携)", "1週間"],
-              ["<strong>Phase 4</strong>", "検索UI + 全文検索 (OpenSearch)", "1週間"],
-              ["<strong>Phase 5</strong>", "修正・コメント・共有UI", "2週間"],
-              ["<strong>Phase 6</strong>", "結合テスト・精度検証・デモ準備", "1週間"],
+              ["<strong>Phase 1</strong>", "環境構築 + ファイルアップロード + S3格納", "1週間", "<span class='text-green-600 font-bold'>✅ 完了</span>"],
+              ["<strong>Phase 2</strong>", "OCRパイプライン (RapidOCR → PaddleOCR)", "2週間", "<span class='text-green-600 font-bold'>✅ 完了</span>"],
+              ["<strong>Phase 3</strong>", "AI文書理解・分類 (Claude Vision連携)", "1週間", "<span class='text-green-600 font-bold'>✅ 完了</span>"],
+              ["<strong>Phase 4</strong>", "検索UI + 全文検索 (OpenSearch + kuromoji)", "1週間", "<span class='text-green-600 font-bold'>✅ 完了</span>"],
+              ["<strong>Phase 5</strong>", "修正・コメント・共有UI", "2週間", "<span class='text-green-600 font-bold'>✅ 完了</span>"],
+              ["<strong>Phase 6</strong>", "精度向上 (PP-OCRv5) + MinerU表抽出 + GPU推論", "2-3週間", "<span class='text-blue-600 font-bold'>📋 次期対応</span>"],
             ]}
           />
-          <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200 my-4">
-            <p className="font-bold text-yellow-800">POC合計期間目安: 約8週間</p>
+          <div className="bg-green-50 rounded-lg p-5 border border-green-200 my-5">
+            <p className="font-bold text-green-800 text-lg">Phase 1〜5 完了済み — 本デモ環境で体験可能</p>
+            <p className="text-green-700 mt-1">Phase 6（精度向上・GPU対応）は本番移行時に実施予定</p>
           </div>
 
           <SubTitle>6.2 POC技術スタック</SubTitle>
@@ -473,7 +482,7 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
 ストレージ:      Amazon S3
 コンテナ:       Docker + Docker Compose (ローカル開発)`}</CodeBlock>
 
-          <SubTitle>6.3 POCで検証すべき項目</SubTitle>
+          <SubTitle>6.3 品質検証項目と判定基準</SubTitle>
           <Table
             headers={["#", "検証項目", "判定基準"]}
             rows={[
@@ -507,7 +516,7 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
           />
 
           <SubTitle>7.2 本番運用フェーズ (月額概算)</SubTitle>
-          <p className="text-gray-600 mb-2">月間処理量10,000ページの場合：</p>
+          <p className="text-gray-600 text-lg mb-3">月間処理量10,000ページの場合：</p>
           <Table
             headers={["項目", "月額概算"]}
             rows={[
@@ -541,30 +550,31 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
           <SectionTitle id="conclusion">9. 結論・推奨</SectionTitle>
 
           <div className="bg-green-50 rounded-lg p-6 border border-green-200 my-6">
-            <h3 className="text-lg font-bold text-green-800 mb-3">
+            <h3 className="text-xl font-bold text-green-800 mb-3">
               9.1 技術的実現可能性: 高い
             </h3>
-            <ul className="space-y-2 text-green-700">
-              <li>OCR技術（特にPaddleOCR PP-OCRv5）は日本語文書に対して十分な精度を持つ</li>
+            <ul className="space-y-2 text-green-700 text-lg">
+              <li>OCR技術（PaddleOCR系列）は日本語文書に対して十分な精度を持ち、POCで実証済み</li>
               <li>Vision LLM（Claude / Gemini）による文書理解・構造化は実用レベルに達している</li>
               <li>オープンソースの組み合わせにより、コストを抑えつつ高機能なシステム構築が可能</li>
+              <li>本POCデモにて、アップロード→OCR→AI分析→検索→共有の一連フローを実動確認済み</li>
             </ul>
           </div>
 
           <SubTitle>9.2 推奨アプローチ</SubTitle>
-          <ol className="list-decimal list-inside space-y-2 text-gray-600 mb-6">
+          <ol className="list-decimal list-inside space-y-3 text-gray-600 text-lg mb-6">
             <li>
               <strong>オープンソース中心のハイブリッド構成</strong> — PaddleOCR + MinerU (OSS)
               + Claude/Gemini API (文書理解)
             </li>
             <li>
-              <strong>段階的な開発</strong> — POCで精度検証 → MVPで基本機能実装 → 本番で拡張
+              <strong>段階的な開発</strong> — POCで精度検証（済）→ 本番で精度向上 + 機能拡張
             </li>
             <li>
               <strong>クラウドネイティブ</strong> — AWS上でコンテナベースのスケーラブルな構成
             </li>
             <li>
-              <strong>実文書での早期検証</strong> — 顧客の実際の書類サンプルを使ったPOCが最重要
+              <strong>実文書での検証</strong> — 実際の業務書類サンプルでの精度検証を推奨
             </li>
           </ol>
 
@@ -579,15 +589,16 @@ AI理解:         Claude API (Anthropic) / Gemini API (Google)
             ]}
           />
 
-          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200 my-8 text-center">
-            <p className="text-blue-800 font-bold text-lg">
-              全ての要件について開発可能と判断する。POCにて技術的な精度検証を行い、
-              本番開発への移行判断を行うことを推奨する。
+          <div className="bg-blue-50 rounded-xl p-8 border-2 border-blue-300 my-8 text-center">
+            <p className="text-blue-800 font-bold text-xl leading-relaxed">
+              全ての要件について技術的に実現可能であることを確認。<br />
+              POCデモにて基本機能の動作を実証済み。<br />
+              実業務書類での精度検証を経て、本番開発への移行を推奨する。
             </p>
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-200 pt-6 mt-12 mb-8 text-sm text-gray-400 text-center">
+          <div className="border-t border-gray-200 pt-6 mt-12 mb-8 text-base text-gray-400 text-center">
             <p>OCRCheck 可行性調査報告書 | 2026年2月</p>
           </div>
         </div>
