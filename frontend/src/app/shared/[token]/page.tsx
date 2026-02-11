@@ -26,7 +26,7 @@ export default function SharedDocumentPage() {
           <div className="md:col-span-2 h-[500px] bg-gray-100 rounded-lg animate-pulse" />
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+              <div key={i} className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4 animate-pulse">
                 <div className="h-5 w-24 bg-gray-200 rounded mb-3" />
                 <div className="h-4 bg-gray-100 rounded" />
               </div>
@@ -65,7 +65,7 @@ export default function SharedDocumentPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Document preview */}
-        <div className="md:col-span-2 bg-white rounded-lg border border-gray-200 p-4">
+        <div className="md:col-span-2 bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
           {doc.download_url ? (
             doc.content_type === "application/pdf" ? (
               <iframe
@@ -87,7 +87,7 @@ export default function SharedDocumentPage() {
 
         {/* Info sidebar */}
         <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
             <h3 className="font-semibold mb-3">書類情報</h3>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -102,7 +102,7 @@ export default function SharedDocumentPage() {
           </div>
 
           {doc.category && (
-            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-purple-400 p-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm border-t-4 border-t-purple-400 p-4">
               <h3 className="font-semibold mb-2">分類</h3>
               <span className="px-2.5 py-1 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 border border-gray-200">
                 {doc.category}
@@ -111,14 +111,14 @@ export default function SharedDocumentPage() {
           )}
 
           {doc.summary && (
-            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-blue-400 p-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm border-t-4 border-t-blue-400 p-4">
               <h3 className="font-semibold mb-2">要約</h3>
               <p className="text-sm text-gray-700 leading-relaxed">{doc.summary}</p>
             </div>
           )}
 
           {doc.key_points && doc.key_points.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-green-400 p-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm border-t-4 border-t-green-400 p-4">
               <h3 className="font-semibold mb-2">重要ポイント</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 {doc.key_points.map((point, i) => (
@@ -154,7 +154,7 @@ function SharedEntitiesCard({ entities }: { entities: Entities }) {
   if (!hasAny) return null;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-amber-400 p-4">
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm border-t-4 border-t-amber-400 p-4">
       <h3 className="font-semibold mb-2">抽出エンティティ</h3>
       <div className="space-y-2">
         {sections.map((s) => {

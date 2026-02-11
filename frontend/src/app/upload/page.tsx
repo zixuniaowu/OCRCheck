@@ -249,7 +249,7 @@ export default function UploadPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm divide-y divide-gray-100">
             {files.map((f, i) => (
               <div key={i} className="px-4 py-3">
                 <div className="flex items-center gap-4">

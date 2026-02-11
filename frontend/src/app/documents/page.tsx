@@ -92,7 +92,7 @@ export default function DocumentsPage() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm overflow-hidden">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="px-4 py-3 border-b border-gray-100 animate-pulse flex gap-4">
               <div className="h-4 w-48 bg-gray-200 rounded" />
@@ -105,7 +105,7 @@ export default function DocumentsPage() {
           ))}
         </div>
       ) : filteredDocs.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+        <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm">
           <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -131,9 +131,9 @@ export default function DocumentsPage() {
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="hidden md:block bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50/50 border-b border-gray-200/60">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium">ファイル名</th>
                   <th className="text-left px-4 py-3 font-medium">種類</th>
@@ -148,7 +148,7 @@ export default function DocumentsPage() {
                 {filteredDocs.map((doc) => (
                   <tr
                     key={doc.id}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition"
+                    className="border-b border-gray-100 hover:bg-blue-50/30 transition"
                   >
                     <td className="px-4 py-3">
                       <Link
@@ -204,7 +204,7 @@ export default function DocumentsPage() {
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {filteredDocs.map((doc) => (
-              <div key={doc.id} className="bg-white rounded-lg border border-gray-200 p-4">
+              <div key={doc.id} className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <Link
                     href={`/documents/${doc.id}`}

@@ -19,7 +19,7 @@ export default function Header() {
   const isShared = pathname.startsWith("/shared/");
 
   return (
-    <header className="sticky top-0 z-30 backdrop-blur-sm bg-white/95 border-b border-gray-200 shadow-sm">
+    <header className="sticky top-0 z-30 backdrop-blur-md bg-white/70 border-b border-white/60 shadow-sm">
       <div className="px-6 py-3 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">

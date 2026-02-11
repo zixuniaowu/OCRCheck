@@ -127,7 +127,7 @@ export default function SearchPage() {
           )}
 
           {result?.facets.categories && result.facets.categories.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
               <h3 className="font-semibold mb-3 text-sm">分類</h3>
               <div className="space-y-1">
                 {result.facets.categories.map((cat) => (
@@ -152,7 +152,7 @@ export default function SearchPage() {
           )}
 
           {result?.facets.tags && result.facets.tags.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
               <h3 className="font-semibold mb-3 text-sm">タグ</h3>
               <div className="flex flex-wrap gap-1">
                 {result.facets.tags.map((tag) => (
@@ -173,7 +173,7 @@ export default function SearchPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
             <h3 className="font-semibold mb-3 text-sm">書類日付</h3>
             <div className="space-y-2">
               <label className="block text-xs text-gray-500">
@@ -221,7 +221,7 @@ export default function SearchPage() {
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+                <div key={i} className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4 animate-pulse">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="h-5 w-48 bg-gray-200 rounded" />
@@ -237,7 +237,7 @@ export default function SearchPage() {
               ))}
             </div>
           ) : result && result.hits.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+            <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm">
               <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -294,7 +294,7 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
   const highlights = hit._highlights || {};
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:border-blue-300 transition">
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4 hover:border-blue-300 transition">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">

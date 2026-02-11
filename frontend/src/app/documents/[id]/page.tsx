@@ -107,7 +107,7 @@ export default function DocumentDetailPage() {
           </div>
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+              <div key={i} className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4 animate-pulse">
                 <div className="h-5 w-24 bg-gray-200 rounded mb-3" />
                 <div className="space-y-2">
                   <div className="h-4 bg-gray-100 rounded" />
@@ -216,7 +216,7 @@ export default function DocumentDetailPage() {
           )}
 
           {/* Tab content */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 min-h-[400px]">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4 min-h-[400px]">
             {activeTab === "preview" && (
               <PreviewTab
                 doc={doc}
@@ -245,7 +245,7 @@ export default function DocumentDetailPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Document info */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
             <h3 className="font-semibold mb-3">書類情報</h3>
             <dl className="space-y-2 text-sm">
               <InfoRow label="ファイル名" value={doc.original_filename} />
@@ -258,7 +258,7 @@ export default function DocumentDetailPage() {
 
           {/* AI Classification */}
           {doc.category && (
-            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-purple-400 p-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm border-t-4 border-t-purple-400 p-4">
               <h3 className="font-semibold mb-3">AI分類</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export default function DocumentDetailPage() {
 
           {/* Summary */}
           {doc.summary && (
-            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-blue-400 p-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm border-t-4 border-t-blue-400 p-4">
               <h3 className="font-semibold mb-3">要約</h3>
               <p className="text-sm text-gray-700 leading-relaxed">{doc.summary}</p>
             </div>
@@ -301,7 +301,7 @@ export default function DocumentDetailPage() {
 
           {/* Key Points */}
           {doc.key_points && doc.key_points.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-green-400 p-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm border-t-4 border-t-green-400 p-4">
               <h3 className="font-semibold mb-3">重要ポイント</h3>
               <ul className="text-sm text-gray-700 space-y-1">
                 {doc.key_points.map((point, i) => (
@@ -319,7 +319,7 @@ export default function DocumentDetailPage() {
 
           {/* OCR stats */}
           {ocrPages.length > 0 && (
-            <details className="bg-white rounded-lg border border-gray-200 p-4">
+            <details className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
               <summary className="font-semibold cursor-pointer">OCR詳細</summary>
               <dl className="space-y-2 text-sm mt-3">
                 <InfoRow
@@ -642,7 +642,7 @@ function EntitiesCard({ entities }: { entities: Entities }) {
   if (!hasAny) return null;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 border-t-4 border-t-amber-400 p-4">
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm border-t-4 border-t-amber-400 p-4">
       <h3 className="font-semibold mb-3">抽出エンティティ</h3>
       <div className="space-y-2">
         {sections.map((s) => {
@@ -695,7 +695,7 @@ function CommentPanel({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/60 shadow-sm p-4">
       <h3 className="font-semibold mb-3">コメント ({comments.length})</h3>
 
       <div className="space-y-3 max-h-60 overflow-y-auto mb-3">
